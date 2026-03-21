@@ -43,7 +43,7 @@ A Node.js/Express server renders all pages server-side. SQLite (via `better-sqli
 | created_at      | TEXT        | ISO 8601 timestamp                                         |
 | last_scanned_at | TEXT        | ISO 8601 timestamp; null until first scan                  |
 
-Scan results are **not persisted** — fetched live on demand. The wishlist is a list of search targets, not a results cache.
+Scan results are **not persisted** — fetched live on demand. The wishlist is a list of search targets, not a results cache. `last_scanned_at` is updated on the `books` row at the end of each per-book scan (success or partial failure — as long as at least one adapter responded).
 
 ---
 
@@ -67,6 +67,7 @@ async function search(query, config) {
 - Adapters **never throw** — all errors are returned in the `error` field.
 - A failing adapter does not block results from other adapters.
 - Adding a new adapter = add a file to `src/adapters/` and register it in the adapter map.
+- Adapters return an **array** of results (not a single object) to handle multiple editions/formats. Each element follows the shape above. An empty array means no match found.
 
 ### Built-in Adapters
 
@@ -99,7 +100,7 @@ Simple centered form with a password field. On success, sets a signed session co
 - Each card: query label, "Scan" button, and (after scanning) per-library result rows showing library name, availability badge (available / unavailable / error), and checkout link if available.
 - "Scan All" button at the top runs every book against every enabled library.
 - "Add Book" inline form or modal: single text field accepting title, keywords, or Amazon URL.
-  - Amazon URLs are parsed server-side to extract a display title from the URL/page metadata.
+  - Amazon URLs are parsed server-side by extracting the title slug from the URL path (e.g. `/dp/B0...` preceded by the slug). No outbound HTTP request is made to Amazon. If parsing fails or the input is not an Amazon URL, the raw input is used as the label. This is best-effort.
 
 ### `/libraries` — Library Manager
 - List of all registered libraries with name, adapter type, enabled toggle, edit/delete actions.
