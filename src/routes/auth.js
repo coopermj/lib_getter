@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/login', (req, res) => {
-  if (req.session.authenticated) return res.redirect('/');
+  if (req.session && req.session.authenticated) return res.redirect('/');
   res.render('login', { error: null });
 });
 
