@@ -13,8 +13,8 @@ async function search(query, config) {
   }
 
   const url =
-    `https://thunder.api.overdrive.com/v2/libraries/${libraryKey}/search` +
-    `?q=${encodeURIComponent(query)}&format=ebook-overdrive&perPage=5&page=1`;
+    `https://thunder.api.overdrive.com/v2/libraries/${libraryKey}/media` +
+    `?query=${encodeURIComponent(query)}&format=ebook-overdrive&perPage=5&page=1&x-client-id=dewey`;
 
   try {
     const res = await fetch(url, {
