@@ -34,8 +34,29 @@ async function search(query, config) {
     const items = (data.items || []);
     if (items.length === 0) return [];
 
-    return items.map(item => {
-      const available = !!(item.availability && item.availability.isAvailable);
+    // OverDrive search never includes availability — fetch it separately for each item
+    const availabilities = await Promise.all(items.map(async item => {
+      try {
+        const avUrl =
+          `https://thunder.api.overdrive.com/v2/libraries/${libraryKey}/media/${item.id}/availability` +
+          `?x-client-id=dewey`;
+        const avRes = await fetch(avUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; lib_getter/1.0)',
+            'Accept': 'application/json',
+          },
+          timeout: 10000,
+        });
+        if (!avRes.ok) return null;
+        return await avRes.json();
+      } catch (_) {
+        return null;
+      }
+    }));
+
+    return items.map((item, i) => {
+      const av = availabilities[i];
+      const available = !!(av && av.isAvailable);
       return {
         title:       item.title || null,
         author:      item.creators ? item.creators.map(c => c.name).join(', ') : null,
