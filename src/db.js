@@ -34,7 +34,7 @@ function getEnabledLibraries() {
   return db.prepare('SELECT * FROM libraries WHERE enabled = 1').all();
 }
 
-function addLibrary({ name, adapter_type, config }) {
+function addLibrary({ name, adapter_type, config = {} }) {
   return db
     .prepare('INSERT INTO libraries (name, adapter_type, config) VALUES (?, ?, ?)')
     .run(name, adapter_type, JSON.stringify(config));
@@ -52,6 +52,7 @@ function deleteLibrary(id) {
 
 // ── Books ─────────────────────────────────────────────────────────────────────
 
+// NOTE: ORDER BY relies on created_at being stored as ISO 8601 (lexicographic = chronological)
 function getBooks() {
   return db.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
 }
