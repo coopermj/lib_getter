@@ -1,100 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>lib_getter — Libraries</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <%- include('_head') %>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
   <%- include('_nav') %>
-  <main class="max-w-4xl mx-auto px-6 py-8">
+  <main class="page">
 
-    <h2 class="text-xl font-semibold text-gray-800 mb-6">Libraries</h2>
+    <div class="page-header">
+      <h1 class="page-title">Libraries</h1>
+    </div>
 
-    <!-- Add Library Form -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-      <h3 class="font-medium text-gray-800 mb-4">Add Library</h3>
-      <form action="/libraries" method="POST" class="space-y-4">
+    <!-- Add form -->
+    <div class="card" style="margin-bottom: 28px;">
+      <p class="card-title">Add library</p>
+      <form action="/libraries" method="POST">
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input type="text" name="name" placeholder="Greene County Public Library"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm" required>
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" placeholder="Greene County Public Library" required>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Adapter Type</label>
-          <select name="adapter_type" onchange="showFields(this.value)"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        <div class="field">
+          <label>Adapter</label>
+          <select name="adapter_type" onchange="showFields(this.value)">
             <option value="overdrive">OverDrive / Libby</option>
-            <option value="scraper">Custom Scraper</option>
+            <option value="scraper">Custom scraper</option>
           </select>
         </div>
 
-        <!-- OverDrive fields (shown by default) -->
+        <!-- OverDrive fields -->
         <div id="fields-overdrive">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Library Key</label>
-          <input type="text" name="libraryKey" placeholder="greenecounty"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-          <p class="text-xs text-gray-500 mt-1">
-            The subdomain of your library's OverDrive page —
-            e.g. <code>greenecounty</code> from <code>greenecounty.overdrive.com</code>
-          </p>
-        </div>
-
-        <!-- Scraper fields (hidden by default) -->
-        <div id="fields-scraper" class="space-y-3 hidden">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Search URL</label>
-            <input type="text" name="searchUrl" placeholder="https://example.com/search?q={query}"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-            <p class="text-xs text-gray-500 mt-1">Use <code>{query}</code> as the placeholder for the search term.</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Title Selector</label>
-            <input type="text" name="titleSelector" placeholder=".book-title"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Availability Selector (optional)</label>
-            <input type="text" name="availabilitySelector" placeholder=".availability-status"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Checkout Link Selector (optional)</label>
-            <input type="text" name="checkoutLinkSelector" placeholder="a.checkout-btn"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+          <div class="field">
+            <label>Library key</label>
+            <input type="text" name="libraryKey" placeholder="greenecounty">
+            <p class="hint">
+              The subdomain from your library's OverDrive page —
+              e.g. <code>greenecounty</code> from <code>greenecounty.overdrive.com</code>
+            </p>
           </div>
         </div>
 
-        <button type="submit"
-          class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
-          Add Library
-        </button>
+        <!-- Scraper fields -->
+        <div id="fields-scraper" style="display:none;">
+          <div class="field">
+            <label>Search URL</label>
+            <input type="text" name="searchUrl" placeholder="https://example.com/search?q={query}">
+            <p class="hint">Use <code>{query}</code> as the placeholder for the search term.</p>
+          </div>
+          <div class="field">
+            <label>Title selector</label>
+            <input type="text" name="titleSelector" placeholder=".book-title">
+          </div>
+          <div class="field">
+            <label>Availability selector <span style="text-transform:none;letter-spacing:0;font-size:11px;color:var(--faint)">(optional)</span></label>
+            <input type="text" name="availabilitySelector" placeholder=".availability-status">
+          </div>
+          <div class="field">
+            <label>Checkout link selector <span style="text-transform:none;letter-spacing:0;font-size:11px;color:var(--faint)">(optional)</span></label>
+            <input type="text" name="checkoutLinkSelector" placeholder="a.checkout-btn">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add library</button>
       </form>
     </div>
 
-    <!-- Library List -->
+    <!-- Library list -->
     <% if (libraries.length === 0) { %>
-      <p class="text-gray-500 text-sm">No libraries yet.</p>
+      <p class="empty-state">No libraries yet.</p>
     <% } %>
 
     <% libraries.forEach(lib => { %>
-      <div class="bg-white rounded-lg shadow px-4 py-3 mb-3 flex justify-between items-center">
+      <div class="lib-row">
         <div>
-          <p class="font-medium text-gray-800"><%= lib.name %></p>
-          <p class="text-xs text-gray-500"><%= lib.adapter_type %></p>
+          <p class="lib-name"><%= lib.name %></p>
+          <p class="lib-type"><%= lib.adapter_type === 'overdrive' ? 'OverDrive / Libby' : 'Custom scraper' %></p>
         </div>
-        <div class="flex gap-3 items-center">
-          <form action="/libraries/<%= lib.id %>/toggle" method="POST" class="inline">
+        <div class="lib-actions">
+          <form action="/libraries/<%= lib.id %>/toggle" method="POST" style="margin:0;">
             <button type="submit"
-              class="text-sm px-3 py-1 rounded <%= lib.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' %>">
+              class="badge-enabled <%= lib.enabled ? 'badge-enabled-on' : 'badge-enabled-off' %>">
               <%= lib.enabled ? 'Enabled' : 'Disabled' %>
             </button>
           </form>
-          <form action="/libraries/<%= lib.id %>/delete" method="POST" class="inline">
-            <button type="submit" class="text-sm text-red-400 hover:text-red-600">✕</button>
+          <form action="/libraries/<%= lib.id %>/delete" method="POST" style="margin:0;">
+            <button type="submit" class="btn-danger">×</button>
           </form>
         </div>
       </div>
@@ -104,8 +96,8 @@
 
   <script>
     function showFields(type) {
-      document.getElementById('fields-overdrive').classList.toggle('hidden', type !== 'overdrive');
-      document.getElementById('fields-scraper').classList.toggle('hidden', type !== 'scraper');
+      document.getElementById('fields-overdrive').style.display = type === 'overdrive' ? '' : 'none';
+      document.getElementById('fields-scraper').style.display   = type === 'scraper'   ? '' : 'none';
     }
   </script>
 </body>

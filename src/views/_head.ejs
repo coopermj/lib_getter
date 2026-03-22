@@ -1,0 +1,333 @@
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg:        #0c0c0e;
+      --surface:   #141416;
+      --surface2:  #1c1c1f;
+      --border:    #252529;
+      --text:      #ddd8cf;
+      --muted:     #7c7872;
+      --faint:     #38352f;
+      --gold:      #c9a55a;
+      --gold-dim:  rgba(201,165,90,.11);
+      --green:     #5ba885;
+      --green-dim: rgba(91,168,133,.11);
+      --red:       #b85858;
+    }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; font-family: inherit; font-size: inherit; }
+
+    /* ── Nav ── */
+    .nav {
+      height: 52px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(12,12,14,.92);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 500;
+      font-size: 19px;
+      color: var(--gold);
+      letter-spacing: .01em;
+    }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: color .15s, background .15s;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface2); }
+    .nav-logout {
+      background: none;
+      border: none;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: color .15s, background .15s;
+    }
+    .nav-logout:hover { color: var(--red); background: rgba(184,88,88,.08); }
+
+    /* ── Layout ── */
+    .page { max-width: 720px; margin: 0 auto; padding: 36px 24px 64px; }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .page-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      margin: 0;
+    }
+
+    /* ── Forms ── */
+    input, select {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 13px;
+      width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-dim);
+    }
+    input::placeholder { color: var(--faint); }
+    select option { background: var(--surface2); }
+
+    .field { margin-bottom: 16px; }
+    .field > label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+    .hint code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: .85em;
+      color: var(--text);
+      background: var(--surface2);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 18px;
+      transition: opacity .15s, background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--gold); color: #0c0c0e; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+    .btn-scan {
+      background: transparent;
+      color: var(--gold);
+      border: 1px solid rgba(201,165,90,.28);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 13px;
+      border-radius: 6px;
+      letter-spacing: .02em;
+      transition: background .15s;
+    }
+    .btn-scan:hover { background: var(--gold-dim); }
+    .btn-scan:disabled { opacity: .4; cursor: not-allowed; background: transparent !important; }
+    .btn-danger {
+      background: none;
+      border: none;
+      color: var(--faint);
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 15px;
+      transition: color .15s, background .15s;
+    }
+    .btn-danger:hover { color: var(--red); background: rgba(184,88,88,.08); }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 22px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin: 0 0 18px;
+    }
+
+    /* ── Book cards ── */
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px 18px 15px 20px;
+      position: relative;
+      margin-bottom: 10px;
+      transition: border-color .2s;
+    }
+    .book-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 14px; bottom: 14px;
+      width: 2px;
+      background: var(--border);
+      border-radius: 0 2px 2px 0;
+      transition: background .25s;
+    }
+    .book-card.has-available::before { background: var(--green); }
+    .book-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .book-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.4;
+    }
+    .book-scanned { font-size: 11px; color: var(--faint); margin-top: 3px; }
+    .book-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .book-results {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Scan result rows ── */
+    .result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+    }
+    .result-row + .result-row { border-top: 1px solid var(--border); }
+    .result-library { font-size: 13px; color: var(--muted); }
+    .result-subtitle { font-size: 11px; color: var(--faint); margin-top: 1px; }
+    .result-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .badge-available {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--green-dim);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 8px 3px 6px;
+      border-radius: 5px;
+    }
+    .badge-available::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .badge-unavailable {
+      font-size: 11px;
+      color: var(--faint);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .badge-error { font-size: 11px; color: var(--red); }
+    .borrow-link {
+      font-size: 12px;
+      color: var(--gold);
+      opacity: .8;
+      transition: opacity .15s;
+      text-decoration: none;
+    }
+    .borrow-link:hover { opacity: 1; text-decoration: underline; text-underline-offset: 2px; }
+
+    /* ── Library rows ── */
+    .lib-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .lib-name { font-size: 14px; color: var(--text); font-weight: 500; }
+    .lib-type { font-size: 11px; color: var(--faint); margin-top: 2px; letter-spacing: .03em; }
+    .lib-actions { display: flex; align-items: center; gap: 8px; }
+    .badge-enabled {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .badge-enabled-on { background: var(--green-dim); color: var(--green); }
+    .badge-enabled-on:hover { opacity: .75; }
+    .badge-enabled-off { background: var(--surface2); color: var(--faint); }
+    .badge-enabled-off:hover { opacity: .75; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .2s ease; }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+    .scanning { font-size: 12px; color: var(--muted); animation: pulse 1.3s ease-in-out infinite; }
+
+    /* ── Misc ── */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .add-row input { flex: 1; }
+    .empty-state { font-size: 13px; color: var(--muted); padding: 8px 0; }
+    .error-msg { font-size: 13px; color: var(--red); margin-bottom: 16px; }
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  </style>

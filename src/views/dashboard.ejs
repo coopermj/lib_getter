@@ -1,64 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>lib_getter</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <%- include('_head') %>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
   <%- include('_nav') %>
-  <main class="max-w-4xl mx-auto px-6 py-8">
+  <main class="page">
 
-    <!-- Header + Scan All -->
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-xl font-semibold text-gray-800">My Wishlist</h2>
+    <div class="page-header">
+      <h1 class="page-title">Wishlist</h1>
       <form action="/books/scan-all" method="POST">
-        <button type="submit"
-          class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
-          Scan All
-        </button>
+        <button type="submit" class="btn btn-ghost">Scan all</button>
       </form>
     </div>
 
-    <!-- Add Book -->
-    <form action="/books" method="POST" class="mb-8 flex gap-2">
-      <input type="text" name="query" placeholder="Title, keywords, or Amazon URL"
-        class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <!-- Add book -->
+    <form action="/books" method="POST" class="add-row">
+      <input type="text" name="query"
+        placeholder="Title, keywords, Amazon or Goodreads URL"
         required>
-      <button type="submit"
-        class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
-        Add Book
-      </button>
+      <button type="submit" class="btn btn-primary">Add</button>
     </form>
 
-    <!-- Book Cards -->
+    <!-- Book list -->
     <% if (books.length === 0) { %>
-      <p class="text-gray-500 text-sm">No books yet. Add one above.</p>
+      <p class="empty-state">No books yet. Add one above.</p>
     <% } %>
 
     <% books.forEach(book => { %>
-      <div class="bg-white rounded-lg shadow mb-4 p-4" id="book-<%= book.id %>">
-        <div class="flex justify-between items-start">
+      <div class="book-card" id="book-<%= book.id %>">
+        <div class="book-card-header">
           <div>
-            <p class="font-medium text-gray-800"><%= book.label %></p>
+            <p class="book-title"><%= book.label %></p>
             <% if (book.last_scanned_at) { %>
-              <p class="text-xs text-gray-400 mt-0.5">
-                Last scanned: <%= new Date(book.last_scanned_at).toLocaleString() %>
+              <p class="book-scanned">
+                Scanned <%= new Date(book.last_scanned_at).toLocaleString() %>
               </p>
             <% } %>
           </div>
-          <div class="flex gap-2 items-center shrink-0 ml-4">
-            <button onclick="scanBook(<%= book.id %>, this)"
-              class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">
+          <div class="book-actions">
+            <button class="btn btn-scan" onclick="scanBook(<%= book.id %>, this)">
               Scan
             </button>
-            <form action="/books/<%= book.id %>/delete" method="POST" class="inline">
-              <button type="submit" class="text-sm text-red-400 hover:text-red-600">✕</button>
+            <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;">
+              <button type="submit" class="btn-danger">×</button>
             </form>
           </div>
         </div>
-        <div id="results-<%= book.id %>" class="mt-3"></div>
+        <div id="results-<%= book.id %>"></div>
       </div>
     <% }) %>
 
@@ -66,19 +56,26 @@
 
   <script>
     async function scanBook(id, btn) {
+      const card      = document.getElementById('book-' + id);
       const resultsEl = document.getElementById('results-' + id);
-      btn.disabled = true;
+      btn.disabled    = true;
       btn.textContent = 'Scanning…';
-      resultsEl.innerHTML = '<p class="text-gray-400 text-xs italic py-1">Scanning libraries…</p>';
+      resultsEl.innerHTML = '<div class="book-results"><span class="scanning">Scanning libraries…</span></div>';
       try {
         const res  = await fetch('/books/' + id + '/scan', { method: 'POST' });
         const html = await res.text();
         resultsEl.innerHTML = html;
+        // light up the accent bar if any result is available
+        if (resultsEl.querySelector('.badge-available')) {
+          card.classList.add('has-available');
+        } else {
+          card.classList.remove('has-available');
+        }
       } catch (e) {
         resultsEl.innerHTML =
-          '<p class="text-red-500 text-sm py-1">Request failed: ' + e.message + '</p>';
+          '<div class="book-results"><span class="badge-error">Request failed: ' + e.message + '</span></div>';
       } finally {
-        btn.disabled = false;
+        btn.disabled    = false;
         btn.textContent = 'Scan';
       }
     }

@@ -27,17 +27,20 @@ router.post('/:id/scan', async (req, res) => {
   const scanResults = await scanBook(book.id, book.query);
 
   if (scanResults.length === 0) {
-    return res.send('<p class="text-gray-400 text-xs italic py-1">No libraries configured. <a href="/libraries" class="text-blue-500 underline">Add one</a>.</p>');
+    return res.send(
+      '<div class="book-results fade-up"><p class="empty-state">No libraries configured. ' +
+      '<a href="/libraries" style="color:var(--gold);text-decoration:underline;">Add one</a>.</p></div>'
+    );
   }
 
-  let html = '<div class="divide-y divide-gray-100">';
+  let html = '<div class="book-results fade-up">';
 
   for (const { library, results } of scanResults) {
     if (results.length === 0) {
       html += `
-        <div class="flex justify-between items-center text-sm py-2">
-          <span class="text-gray-600">${escHtml(library.name)}</span>
-          <span class="text-gray-400">Not found</span>
+        <div class="result-row">
+          <span class="result-library">${escHtml(library.name)}</span>
+          <span class="badge-unavailable">Not found</span>
         </div>`;
       continue;
     }
@@ -45,23 +48,23 @@ router.post('/:id/scan', async (req, res) => {
     for (const item of results) {
       if (item.error) {
         html += `
-          <div class="flex justify-between items-center text-sm py-2">
-            <span class="text-gray-600">${escHtml(library.name)}</span>
-            <span class="text-red-400 text-xs">Error: ${escHtml(item.error)}</span>
+          <div class="result-row">
+            <span class="result-library">${escHtml(library.name)}</span>
+            <span class="badge-error">Error: ${escHtml(item.error)}</span>
           </div>`;
       } else {
         const badge = item.available
-          ? '<span class="text-green-600 font-medium">Available</span>'
-          : '<span class="text-gray-400">Unavailable</span>';
+          ? '<span class="badge-available">Available</span>'
+          : '<span class="badge-unavailable">Unavailable</span>';
         const link = item.checkoutUrl
-          ? ` <a href="${escHtml(item.checkoutUrl)}" target="_blank" rel="noopener"
-                 class="text-blue-600 hover:underline text-xs ml-2">Borrow →</a>`
+          ? ` <a href="${escHtml(item.checkoutUrl)}" target="_blank" rel="noopener" class="borrow-link">Borrow →</a>`
           : '';
-        const subtitle = item.title ? ` <span class="text-gray-400 text-xs">— ${escHtml(item.title)}</span>` : '';
+        const subtitle = item.title
+          ? `<div class="result-subtitle">${escHtml(item.title)}</div>` : '';
         html += `
-          <div class="flex justify-between items-center text-sm py-2">
-            <span class="text-gray-600">${escHtml(library.name)}${subtitle}</span>
-            <span class="shrink-0 ml-4">${badge}${link}</span>
+          <div class="result-row">
+            <div><span class="result-library">${escHtml(library.name)}</span>${subtitle}</div>
+            <div class="result-right">${badge}${link}</div>
           </div>`;
       }
     }

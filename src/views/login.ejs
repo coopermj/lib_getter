@@ -1,26 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>lib_getter — Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>lib_getter</title>
+  <%- include('_head') %>
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .login-box {
+      width: 100%;
+      max-width: 340px;
+    }
+    .login-logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 500;
+      font-size: 28px;
+      color: var(--gold);
+      letter-spacing: .01em;
+      margin-bottom: 32px;
+      display: block;
+    }
+    .login-box .btn-primary {
+      width: 100%;
+      padding: 11px 18px;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow p-8 w-full max-w-sm">
-    <h1 class="text-xl font-semibold text-gray-800 mb-6">lib_getter</h1>
-    <% if (error) { %>
-      <p class="text-red-600 text-sm mb-4"><%= error %></p>
-    <% } %>
-    <form action="/login" method="POST">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-      <input type="password" name="password" autofocus
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <button type="submit"
-        class="w-full bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-blue-700">
-        Sign in
-      </button>
-    </form>
+<body>
+  <div class="login-wrap">
+    <div class="login-box">
+      <span class="login-logo">lib_getter</span>
+      <% if (error) { %>
+        <p class="error-msg"><%= error %></p>
+      <% } %>
+      <form action="/login" method="POST">
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" autofocus autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary">Continue</button>
+      </form>
+    </div>
   </div>
 </body>
 </html>
