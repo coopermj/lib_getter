@@ -18,4 +18,10 @@ app.use('/',          requireAuth, require('./routes/index'));
 app.use('/books',     requireAuth, require('./routes/books'));
 app.use('/libraries', requireAuth, require('./routes/libraries'));
 
+// Global error handler — must have 4 parameters for Express to recognize it as an error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send('<p class="text-red-500 p-4">Something went wrong. Check server logs.</p>');
+});
+
 module.exports = app;

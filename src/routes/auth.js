@@ -7,7 +7,12 @@ router.get('/login', (req, res) => {
 });
 
 router.post('/login', (req, res) => {
-  if (req.body.password === process.env.MASTER_PASSWORD) {
+  const expected = process.env.MASTER_PASSWORD;
+  if (!expected) {
+    return res.render('login', { error: 'Server misconfiguration: MASTER_PASSWORD is not set.' });
+  }
+  const supplied = (req.body.password || '').trim();
+  if (supplied && supplied === expected) {
     req.session.authenticated = true;
     return res.redirect('/');
   }
