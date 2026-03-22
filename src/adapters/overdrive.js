@@ -67,7 +67,7 @@ async function search(query, config) {
         author:      item.creators ? item.creators.map(c => c.name).join(', ') : null,
         available,
         checkoutUrl: available
-          ? `https://libbyapp.com/library/${libraryKey}/everything/page-1/book/${item.id}`
+          ? `https://libbyapp.com/library/${libraryKey}/everything/page-1/${item.id}`
           : null,
         error: null,
       };
