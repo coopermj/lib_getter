@@ -26,6 +26,10 @@ router.post('/:id/scan', async (req, res) => {
 
   const scanResults = await scanBook(book.id, book.query);
 
+  if (scanResults.length === 0) {
+    return res.send('<p class="text-gray-400 text-xs italic py-1">No libraries configured. <a href="/libraries" class="text-blue-500 underline">Add one</a>.</p>');
+  }
+
   let html = '<div class="divide-y divide-gray-100">';
 
   for (const { library, results } of scanResults) {

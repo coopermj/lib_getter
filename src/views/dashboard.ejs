@@ -66,15 +66,17 @@
 
   <script>
     async function scanBook(id, btn) {
+      const resultsEl = document.getElementById('results-' + id);
       btn.disabled = true;
       btn.textContent = 'Scanning…';
+      resultsEl.innerHTML = '<p class="text-gray-400 text-xs italic py-1">Scanning libraries…</p>';
       try {
         const res  = await fetch('/books/' + id + '/scan', { method: 'POST' });
         const html = await res.text();
-        document.getElementById('results-' + id).innerHTML = html;
+        resultsEl.innerHTML = html;
       } catch (e) {
-        document.getElementById('results-' + id).innerHTML =
-          '<p class="text-red-500 text-sm">Request failed</p>';
+        resultsEl.innerHTML =
+          '<p class="text-red-500 text-sm py-1">Request failed: ' + e.message + '</p>';
       } finally {
         btn.disabled = false;
         btn.textContent = 'Scan';
