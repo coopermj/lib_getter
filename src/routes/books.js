@@ -12,6 +12,13 @@ router.post('/', (req, res) => {
   res.redirect('/');
 });
 
+// Scan all books (full page refresh — results visible via individual Scan buttons after)
+router.post('/scan-all', async (req, res) => {
+  const books = getBooks();
+  await Promise.all(books.map(b => scanBook(b.id, b.query)));
+  res.redirect('/');
+});
+
 // Scan a single book — returns an HTML fragment (used by fetch in dashboard.ejs)
 router.post('/:id/scan', async (req, res) => {
   const book = getBook(req.params.id);
@@ -58,13 +65,6 @@ router.post('/:id/scan', async (req, res) => {
 
   html += '</div>';
   res.send(html);
-});
-
-// Scan all books (full page refresh — results visible via individual Scan buttons after)
-router.post('/scan-all', async (req, res) => {
-  const books = getBooks();
-  await Promise.all(books.map(b => scanBook(b.id, b.query)));
-  res.redirect('/');
 });
 
 // Delete a book
