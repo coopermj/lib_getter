@@ -1,11 +1,8 @@
 {
-  "name": "build",
+  "name": "lib-getter",
   "version": "1.0.0",
   "description": "",
   "main": "src/server.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
