@@ -16,6 +16,7 @@ async function search(query, config) {
     `https://thunder.api.overdrive.com/v2/libraries/${libraryKey}/media` +
     `?query=${encodeURIComponent(query)}&format=ebook-overdrive&perPage=5&page=1&x-client-id=dewey`;
 
+  console.log(`[overdrive] search libraryKey=${libraryKey} query="${query}"`);
   try {
     const res = await fetch(url, {
       headers: {
@@ -26,12 +27,14 @@ async function search(query, config) {
     });
 
     if (!res.ok) {
+      console.log(`[overdrive] search HTTP ${res.status} for ${libraryKey}`);
       return [{ title: null, author: null, available: false, checkoutUrl: null,
                 error: `OverDrive API returned HTTP ${res.status}` }];
     }
 
     const data = await res.json();
     const items = (data.items || []);
+    console.log(`[overdrive] search returned ${items.length} items for "${query}" in ${libraryKey}`);
     if (items.length === 0) return [];
 
     // OverDrive search never includes availability — fetch it separately for each item
@@ -47,9 +50,10 @@ async function search(query, config) {
           },
           timeout: 10000,
         });
-        if (!avRes.ok) return null;
+        if (!avRes.ok) { console.log(`[overdrive] availability HTTP ${avRes.status} for ${item.id}`); return null; }
         return await avRes.json();
-      } catch (_) {
+      } catch (e) {
+        console.log(`[overdrive] availability error for ${item.id}: ${e.message}`);
         return null;
       }
     }));
@@ -57,6 +61,7 @@ async function search(query, config) {
     return items.map((item, i) => {
       const av = availabilities[i];
       const available = !!(av && av.isAvailable);
+      console.log(`[overdrive] item ${item.id} "${item.title}" isAvailable=${av && av.isAvailable}`);
       return {
         title:       item.title || null,
         author:      item.creators ? item.creators.map(c => c.name).join(', ') : null,
