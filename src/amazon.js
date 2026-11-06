@@ -19,10 +19,10 @@ function parseLabel(input) {
     }
 
     if (url.hostname.includes('goodreads.com')) {
-      // Pattern: /book/show/{numeric-id}-{title-slug}
-      const match = url.pathname.match(/\/book\/show\/\d+-(.+)/);
+      // Patterns: /book/show/{id}-{title-slug}  or  /book/show/{id}.{Title_With_Underscores}
+      const match = url.pathname.match(/\/book\/show\/\d+[-.]([^/]+)/);
       if (match) {
-        return match[1].replace(/-/g, ' ');
+        return decodeURIComponent(match[1]).replace(/[-_]+/g, ' ').trim();
       }
     }
   } catch (_) {

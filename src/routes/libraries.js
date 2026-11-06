@@ -8,11 +8,11 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const { name, adapter_type, libraryKey, searchUrl,
-          titleSelector, availabilitySelector, checkoutLinkSelector } = req.body;
+          titleSelector, rowSelector, availabilitySelector, checkoutLinkSelector } = req.body;
 
   const config = adapter_type === 'overdrive'
     ? { libraryKey }
-    : { searchUrl, titleSelector, availabilitySelector, checkoutLinkSelector };
+    : { searchUrl, titleSelector, rowSelector, availabilitySelector, checkoutLinkSelector };
 
   addLibrary({ name, adapter_type, config });
   res.redirect('/libraries');

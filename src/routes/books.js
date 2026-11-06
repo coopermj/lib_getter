@@ -1,6 +1,6 @@
 const express   = require('express');
 const router    = express.Router();
-const { addBook, deleteBook, getBook, getBooks } = require('../db');
+const { addBook, deleteBook, getBook } = require('../db');
 const { parseLabel } = require('../amazon');
 const { scanBook }   = require('../scanner');
 
@@ -8,14 +8,9 @@ const { scanBook }   = require('../scanner');
 router.post('/', (req, res) => {
   const query = (req.body.query || '').trim();
   if (!query) return res.redirect('/');
-  addBook({ query, label: parseLabel(query) });
-  res.redirect('/');
-});
-
-// Scan all books (full page refresh — results visible via individual Scan buttons after)
-router.post('/scan-all', async (req, res) => {
-  const books = getBooks();
-  await Promise.all(books.map(b => scanBook(b.id, b.query)));
+  // Search with the parsed title, not the raw URL — library catalogs can't match a URL
+  const label = parseLabel(query);
+  addBook({ query: label, label });
   res.redirect('/');
 });
 

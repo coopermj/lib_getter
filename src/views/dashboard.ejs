@@ -10,9 +10,7 @@
 
     <div class="page-header">
       <h1 class="page-title">Wishlist</h1>
-      <form action="/books/scan-all" method="POST">
-        <button type="submit" class="btn btn-ghost">Scan all</button>
-      </form>
+      <button type="button" class="btn btn-ghost" onclick="scanAll(this)">Scan all</button>
     </div>
 
     <!-- Add book -->
@@ -40,7 +38,7 @@
             <% } %>
           </div>
           <div class="book-actions">
-            <button class="btn btn-scan" onclick="scanBook(<%= book.id %>, this)">
+            <button class="btn btn-scan" data-book-id="<%= book.id %>" onclick="scanBook(this.dataset.bookId, this)">
               Scan
             </button>
             <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;">
@@ -55,6 +53,21 @@
   </main>
 
   <script>
+    // Scan every book in the browser so results render inline, with limited concurrency
+    async function scanAll(allBtn) {
+      const buttons = Array.from(document.querySelectorAll('.btn-scan'));
+      allBtn.disabled = true;
+      const queue = buttons.slice();
+      const worker = async () => {
+        while (queue.length) {
+          const btn = queue.shift();
+          await scanBook(btn.dataset.bookId, btn);
+        }
+      };
+      await Promise.all([worker(), worker()]);
+      allBtn.disabled = false;
+    }
+
     async function scanBook(id, btn) {
       const card      = document.getElementById('book-' + id);
       const resultsEl = document.getElementById('results-' + id);
@@ -62,9 +75,13 @@
       btn.textContent = 'Scanning…';
       resultsEl.innerHTML = '<div class="book-results"><span class="scanning">Scanning libraries…</span></div>';
       try {
-        const res  = await fetch('/books/' + id + '/scan', { method: 'POST' });
-        const html = await res.text();
-        resultsEl.innerHTML = html;
+        const res = await fetch('/books/' + id + '/scan', { method: 'POST' });
+        if (res.redirected && new URL(res.url).pathname === '/login') {
+          window.location.href = '/login';
+          return;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        resultsEl.innerHTML = await res.text();
         // light up the accent bar if any result is available
         if (resultsEl.querySelector('.badge-available')) {
           card.classList.add('has-available');
@@ -72,8 +89,13 @@
           card.classList.remove('has-available');
         }
       } catch (e) {
-        resultsEl.innerHTML =
-          '<div class="book-results"><span class="badge-error">Request failed: ' + e.message + '</span></div>';
+        const errEl = document.createElement('span');
+        errEl.className   = 'badge-error';
+        errEl.textContent = 'Request failed: ' + e.message;
+        const wrap = document.createElement('div');
+        wrap.className = 'book-results';
+        wrap.appendChild(errEl);
+        resultsEl.replaceChildren(wrap);
       } finally {
         btn.disabled    = false;
         btn.textContent = 'Scan';

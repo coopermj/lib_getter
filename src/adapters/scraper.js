@@ -6,20 +6,21 @@ const cheerio = require('cheerio');
  * config: {
  *   searchUrl:            "https://example.com/search?q={query}",
  *   titleSelector:        ".book-title",
+ *   rowSelector:          ".result-item",    // optional; container for one result
  *   availabilitySelector: ".availability",   // optional
  *   checkoutLinkSelector: "a.checkout-btn"   // optional
  * }
  * Returns: array of result objects.
  */
 async function search(query, config) {
-  const { searchUrl, titleSelector, availabilitySelector, checkoutLinkSelector } = config;
+  const { searchUrl, titleSelector, rowSelector, availabilitySelector, checkoutLinkSelector } = config;
 
   if (!searchUrl || !titleSelector) {
     return [{ title: null, author: null, available: false, checkoutUrl: null,
               error: 'Scraper config requires searchUrl and titleSelector' }];
   }
 
-  const url = searchUrl.replace('{query}', encodeURIComponent(query));
+  const url = searchUrl.replaceAll('{query}', encodeURIComponent(query));
 
   try {
     const res = await fetch(url, {
@@ -40,7 +41,9 @@ async function search(query, config) {
     $(titleSelector).each((_, el) => {
       const title = $(el).text().trim() || null;
 
-      const row = $(el).closest('[class]'); // walk up to a containing row
+      // Containing row: explicit selector, else the nearest classed ancestor
+      // (starting at the parent so the title element itself never counts as the row)
+      const row = rowSelector ? $(el).closest(rowSelector) : $(el).parent().closest('[class]');
 
       const availText = availabilitySelector
         ? row.find(availabilitySelector).first().text().trim().toLowerCase()
@@ -51,7 +54,12 @@ async function search(query, config) {
       if (checkoutLinkSelector) {
         const href = row.find(checkoutLinkSelector).first().attr('href');
         if (href) {
-          checkoutUrl = href.startsWith('http') ? href : new URL(url).origin + href;
+          try {
+            const resolved = new URL(href, url);
+            if (resolved.protocol === 'http:' || resolved.protocol === 'https:') {
+              checkoutUrl = resolved.href;
+            }
+          } catch (_) { /* unparseable href — leave null */ }
         }
       }
 

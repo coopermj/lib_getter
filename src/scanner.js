@@ -21,14 +21,23 @@ async function scanBook(bookId, query) {
       };
     }
 
-    const config  = JSON.parse(lib.config || '{}');
-    const results = await adapter.search(query, config);
-    return { library: lib, results };
+    try {
+      const config  = JSON.parse(lib.config || '{}');
+      const results = await adapter.search(query, config);
+      return { library: lib, results };
+    } catch (err) {
+      // Isolate failures so one bad library doesn't fail the whole scan
+      return {
+        library: lib,
+        results: [{ title: null, author: null, available: false, checkoutUrl: null, error: err.message }],
+      };
+    }
   });
 
   const scanResults = await Promise.all(scanPromises);
 
-  if (scanResults.length > 0) touchBook(bookId);
+  const anyResponded = scanResults.some(({ results }) => results.every(r => !r.error));
+  if (anyResponded) touchBook(bookId);
 
   return scanResults;
 }
