@@ -42,6 +42,7 @@ The SQLite database is created at `dev.sqlite` in the project root.
 3. Add a **Volume** mounted at `/data` for persistent storage.
 4. Set environment variables:
    - `MASTER_PASSWORD` — your login password
+   - `SESSION_SECRET` — a long random string used to sign login cookies (required in production; e.g. `openssl rand -hex 32`)
    - `DB_PATH` — `/data/lib_getter.db`
 5. Railway will build and deploy automatically via `nixpacks.toml`.
 
@@ -50,6 +51,7 @@ The SQLite database is created at `dev.sqlite` in the project root.
 | Variable | Required | Description |
 |---|---|---|
 | `MASTER_PASSWORD` | Yes | Login password |
+| `SESSION_SECRET` | In production | Secret for signing login cookies; the app refuses to start without it when `NODE_ENV=production` |
 | `DB_PATH` | No | SQLite file path (default: `dev.sqlite`) |
 | `PORT` | No | Server port (default: `8080`) |
 

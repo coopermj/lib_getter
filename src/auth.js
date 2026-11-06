@@ -16,6 +16,8 @@ const sessionMiddleware = cookieSession({
 
 function requireAuth(req, res, next) {
   if (req.session && req.session.authenticated) return next();
+  // Background fetch() calls identify themselves; answer them with 401 instead of a redirect
+  if (req.get('X-Requested-With') === 'fetch') return res.status(401).send('Session expired');
   res.redirect('/login');
 }
 

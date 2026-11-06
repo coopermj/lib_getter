@@ -68,9 +68,9 @@ function addBook({ query, label }) {
 }
 
 function touchBook(id) {
-  return db
-    .prepare('UPDATE books SET last_scanned_at = ? WHERE id = ?')
-    .run(new Date().toISOString(), id);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE books SET last_scanned_at = ? WHERE id = ?').run(now, id);
+  return now;
 }
 
 function deleteBook(id) {

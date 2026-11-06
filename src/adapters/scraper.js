@@ -1,5 +1,6 @@
 const fetch   = require('node-fetch');
 const cheerio = require('cheerio');
+const { errorResult } = require('./result');
 
 /**
  * Generic CSS-selector scraper adapter.
@@ -16,8 +17,7 @@ async function search(query, config) {
   const { searchUrl, titleSelector, rowSelector, availabilitySelector, checkoutLinkSelector } = config;
 
   if (!searchUrl || !titleSelector) {
-    return [{ title: null, author: null, available: false, checkoutUrl: null,
-              error: 'Scraper config requires searchUrl and titleSelector' }];
+    return [errorResult('Scraper config requires searchUrl and titleSelector')];
   }
 
   const url = searchUrl.replaceAll('{query}', encodeURIComponent(query));
@@ -29,14 +29,14 @@ async function search(query, config) {
     });
 
     if (!res.ok) {
-      return [{ title: null, author: null, available: false, checkoutUrl: null,
-                error: `Scraper got HTTP ${res.status} from ${url}` }];
+      return [errorResult(`Scraper got HTTP ${res.status} from ${url}`)];
     }
 
     const html = await res.text();
     const $    = cheerio.load(html);
 
     const results = [];
+    let rowMissing = false;
 
     $(titleSelector).each((_, el) => {
       const title = $(el).text().trim() || null;
@@ -44,6 +44,7 @@ async function search(query, config) {
       // Containing row: explicit selector, else the nearest classed ancestor
       // (starting at the parent so the title element itself never counts as the row)
       const row = rowSelector ? $(el).closest(rowSelector) : $(el).parent().closest('[class]');
+      if (rowSelector && row.length === 0) { rowMissing = true; return false; }
 
       const availText = availabilitySelector
         ? row.find(availabilitySelector).first().text().trim().toLowerCase()
@@ -66,10 +67,14 @@ async function search(query, config) {
       results.push({ title, author: null, available, checkoutUrl, error: null });
     });
 
+    if (rowMissing) {
+      return [errorResult(`rowSelector "${rowSelector}" matched no ancestor of a title — check the selector`)];
+    }
+
     return results;
 
   } catch (err) {
-    return [{ title: null, author: null, available: false, checkoutUrl: null, error: err.message }];
+    return [errorResult(err.message)];
   }
 }
 

@@ -14,6 +14,9 @@
     </div>
 
     <!-- Add book -->
+    <% if (error) { %>
+      <p class="error-msg"><%= error %></p>
+    <% } %>
     <form action="/books" method="POST" class="add-row">
       <input type="text" name="query"
         placeholder="Title, keywords, Amazon or Goodreads URL"
@@ -31,11 +34,9 @@
         <div class="book-card-header">
           <div>
             <p class="book-title"><%= book.label %></p>
-            <% if (book.last_scanned_at) { %>
-              <p class="book-scanned">
-                Scanned <%= new Date(book.last_scanned_at).toLocaleString() %>
-              </p>
-            <% } %>
+            <p class="book-scanned" id="scanned-<%= book.id %>"
+               data-scanned-at="<%= book.last_scanned_at || '' %>"
+               <%= book.last_scanned_at ? '' : 'hidden' %>></p>
           </div>
           <div class="book-actions">
             <button class="btn btn-scan" data-book-id="<%= book.id %>" onclick="scanBook(this.dataset.bookId, this)">
@@ -64,9 +65,23 @@
           await scanBook(btn.dataset.bookId, btn);
         }
       };
-      await Promise.all([worker(), worker()]);
-      allBtn.disabled = false;
+      try {
+        await Promise.all([worker(), worker()]);
+      } finally {
+        allBtn.disabled = false;
+      }
     }
+
+    // Render stored ISO timestamps in the viewer's locale
+    function showScannedAt(id, iso) {
+      const el = document.getElementById('scanned-' + id);
+      if (!el || !iso) return;
+      el.textContent = 'Scanned ' + new Date(iso).toLocaleString();
+      el.hidden = false;
+    }
+    document.querySelectorAll('.book-scanned').forEach(el => {
+      showScannedAt(el.id.replace('scanned-', ''), el.dataset.scannedAt);
+    });
 
     async function scanBook(id, btn) {
       const card      = document.getElementById('book-' + id);
@@ -75,13 +90,21 @@
       btn.textContent = 'Scanning…';
       resultsEl.innerHTML = '<div class="book-results"><span class="scanning">Scanning libraries…</span></div>';
       try {
-        const res = await fetch('/books/' + id + '/scan', { method: 'POST' });
-        if (res.redirected && new URL(res.url).pathname === '/login') {
+        const res = await fetch('/books/' + id + '/scan', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (res.status === 401) {
           window.location.href = '/login';
           return;
         }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          // 4xx bodies are short server-authored messages worth showing; 5xx is the generic error page
+          const msg = res.status < 500 ? (await res.text()).replace(/<[^>]+>/g, '').trim() : '';
+          throw new Error(msg || 'HTTP ' + res.status);
+        }
         resultsEl.innerHTML = await res.text();
+        showScannedAt(id, res.headers.get('X-Scanned-At'));
         // light up the accent bar if any result is available
         if (resultsEl.querySelector('.badge-available')) {
           card.classList.add('has-available');

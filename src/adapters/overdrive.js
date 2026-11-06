@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { errorResult } = require('./result');
 
 /**
  * Search OverDrive/Libby catalog for ebooks.
@@ -8,8 +9,7 @@ const fetch = require('node-fetch');
 async function search(query, config) {
   const { libraryKey } = config;
   if (!libraryKey) {
-    return [{ title: null, author: null, available: false, checkoutUrl: null,
-              error: 'Missing libraryKey in OverDrive config' }];
+    return [errorResult('Missing libraryKey in OverDrive config')];
   }
 
   const url =
@@ -28,8 +28,7 @@ async function search(query, config) {
 
     if (!res.ok) {
       console.log(`[overdrive] search HTTP ${res.status} for ${libraryKey}`);
-      return [{ title: null, author: null, available: false, checkoutUrl: null,
-                error: `OverDrive API returned HTTP ${res.status}` }];
+      return [errorResult(`OverDrive API returned HTTP ${res.status}`)];
     }
 
     const data = await res.json();
@@ -74,7 +73,7 @@ async function search(query, config) {
     });
 
   } catch (err) {
-    return [{ title: null, author: null, available: false, checkoutUrl: null, error: err.message }];
+    return [errorResult(err.message)];
   }
 }
 

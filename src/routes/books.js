@@ -1,6 +1,6 @@
 const express   = require('express');
 const router    = express.Router();
-const { addBook, deleteBook, getBook } = require('../db');
+const { addBook, deleteBook, getBook, getBooks } = require('../db');
 const { parseLabel } = require('../amazon');
 const { scanBook }   = require('../scanner');
 
@@ -10,6 +10,12 @@ router.post('/', (req, res) => {
   if (!query) return res.redirect('/');
   // Search with the parsed title, not the raw URL — library catalogs can't match a URL
   const label = parseLabel(query);
+  if (isUrl(label)) {
+    return res.status(400).render('dashboard', {
+      books: getBooks(),
+      error: 'Couldn\'t read a title from that link. Paste an Amazon product link (with the title in the URL), a Goodreads link, or type the title.',
+    });
+  }
   addBook({ query: label, label });
   res.redirect('/');
 });
@@ -19,7 +25,8 @@ router.post('/:id/scan', async (req, res) => {
   const book = getBook(req.params.id);
   if (!book) return res.status(404).send('<p class="text-red-500 text-sm">Book not found</p>');
 
-  const scanResults = await scanBook(book.id, book.query);
+  const { scannedAt, libraries: scanResults } = await scanBook(book.id, book.query);
+  if (scannedAt) res.set('X-Scanned-At', scannedAt);
 
   if (scanResults.length === 0) {
     return res.send(
@@ -74,6 +81,10 @@ router.post('/:id/delete', (req, res) => {
   deleteBook(req.params.id);
   res.redirect('/');
 });
+
+function isUrl(str) {
+  try { return ['http:', 'https:'].includes(new URL(str).protocol); } catch (_) { return false; }
+}
 
 // Minimal HTML escaping for inline HTML construction
 function escHtml(str) {

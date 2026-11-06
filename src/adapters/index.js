@@ -2,6 +2,7 @@ const overdrive = require('./overdrive');
 const scraper   = require('./scraper');
 
 const ADAPTERS = { overdrive, scraper };
+const { errorResult } = require('./result');
 
 function getAdapter(type) {
   const adapter = ADAPTERS[type];
@@ -9,4 +10,4 @@ function getAdapter(type) {
   return adapter;
 }
 
-module.exports = { getAdapter };
+module.exports = { getAdapter, errorResult };

@@ -1,11 +1,11 @@
 const { getEnabledLibraries, touchBook } = require('./db');
-const { getAdapter } = require('./adapters/index');
+const { getAdapter, errorResult } = require('./adapters/index');
 
 /**
  * Run all enabled library adapters against a book query in parallel.
  * Updates last_scanned_at on the book record when at least one adapter responds.
  *
- * Returns: Array of { library: { id, name, ... }, results: [...] }
+ * Returns: { scannedAt: ISO string | null, libraries: Array of { library, results } }
  */
 async function scanBook(bookId, query) {
   const libraries = getEnabledLibraries();
@@ -15,10 +15,7 @@ async function scanBook(bookId, query) {
     try {
       adapter = getAdapter(lib.adapter_type);
     } catch (err) {
-      return {
-        library: lib,
-        results: [{ title: null, author: null, available: false, checkoutUrl: null, error: err.message }],
-      };
+      return { library: lib, results: [errorResult(err.message)] };
     }
 
     try {
@@ -27,19 +24,16 @@ async function scanBook(bookId, query) {
       return { library: lib, results };
     } catch (err) {
       // Isolate failures so one bad library doesn't fail the whole scan
-      return {
-        library: lib,
-        results: [{ title: null, author: null, available: false, checkoutUrl: null, error: err.message }],
-      };
+      return { library: lib, results: [errorResult(err.message)] };
     }
   });
 
   const scanResults = await Promise.all(scanPromises);
 
   const anyResponded = scanResults.some(({ results }) => results.every(r => !r.error));
-  if (anyResponded) touchBook(bookId);
+  const scannedAt = anyResponded ? touchBook(bookId) : null;
 
-  return scanResults;
+  return { scannedAt, libraries: scanResults };
 }
 
 module.exports = { scanBook };
