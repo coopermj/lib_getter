@@ -10,51 +10,126 @@
 
     <div class="page-header">
       <h1 class="page-title">Wishlist</h1>
-      <form action="/books/scan-all" method="POST">
-        <button type="submit" class="btn btn-ghost">Scan all</button>
-      </form>
+      <% if (status === 'active' && books.length > 0) { %>
+        <button type="button" class="btn btn-ghost" onclick="scanAll(this)">Scan all</button>
+      <% } %>
     </div>
 
     <!-- Add book -->
+    <% if (error) { %>
+      <p class="error-msg"><%= error %></p>
+    <% } %>
     <form action="/books" method="POST" class="add-row">
       <input type="text" name="query"
-        placeholder="Title, keywords, Amazon or Goodreads URL"
+        placeholder="Title, ISBN, Amazon or Goodreads URL"
         required>
+      <select name="format" class="format-select" title="Format">
+        <option value="ebook">Ebook</option>
+        <option value="audiobook">Audiobook</option>
+        <option value="both">Either</option>
+      </select>
       <button type="submit" class="btn btn-primary">Add</button>
     </form>
 
+    <!-- Status tabs -->
+    <nav class="tabs">
+      <% [['active', 'Wishlist'], ['borrowed', 'Borrowed'], ['archived', 'Archived']].forEach(([s, name]) => { %>
+        <a href="/?status=<%= s %>" class="tab <%= status === s ? 'tab-active' : '' %>">
+          <%= name %><span class="tab-count"><%= counts[s] %></span>
+        </a>
+      <% }) %>
+    </nav>
+
     <!-- Book list -->
     <% if (books.length === 0) { %>
-      <p class="empty-state">No books yet. Add one above.</p>
+      <p class="empty-state">
+        <%= status === 'active' ? 'No books yet. Add one above.' : 'Nothing here.' %>
+      </p>
     <% } %>
 
+    <% const back = '/?status=' + status; %>
     <% books.forEach(book => { %>
-      <div class="book-card" id="book-<%= book.id %>">
+      <div class="book-card <%= book.hasAvailable ? 'has-available' : '' %>" id="book-<%= book.id %>">
         <div class="book-card-header">
           <div>
-            <p class="book-title"><%= book.label %></p>
-            <% if (book.last_scanned_at) { %>
-              <p class="book-scanned">
-                Scanned <%= new Date(book.last_scanned_at).toLocaleString() %>
-              </p>
-            <% } %>
+            <p class="book-title">
+              <%= book.label %>
+              <% if (book.format !== 'ebook') { %>
+                <span class="format-tag"><%= book.format === 'audiobook' ? 'Audio' : 'Either' %></span>
+              <% } %>
+            </p>
+            <p class="book-scanned" id="scanned-<%= book.id %>"
+               data-scanned-at="<%= book.last_scanned_at || '' %>"
+               <%= book.last_scanned_at ? '' : 'hidden' %>></p>
           </div>
           <div class="book-actions">
-            <button class="btn btn-scan" onclick="scanBook(<%= book.id %>, this)">
-              Scan
-            </button>
-            <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;">
+            <% if (status === 'active') { %>
+              <button class="btn btn-scan" data-book-id="<%= book.id %>" onclick="scanBook(this.dataset.bookId, this)">
+                Scan
+              </button>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="borrowed">
+                <button type="submit" class="btn-link" title="Mark as borrowed">Borrowed</button>
+              </form>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="archived">
+                <button type="submit" class="btn-link" title="Archive">Archive</button>
+              </form>
+            <% } else { %>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="active">
+                <input type="hidden" name="back" value="<%= back %>">
+                <button type="submit" class="btn-link">Back to wishlist</button>
+              </form>
+            <% } %>
+            <a href="/books/<%= book.id %>/edit" class="btn-link" title="Edit">Edit</a>
+            <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;"
+                  onsubmit="return confirm('Delete this book?')">
+              <input type="hidden" name="back" value="<%= back %>">
               <button type="submit" class="btn-danger">×</button>
             </form>
           </div>
         </div>
-        <div id="results-<%= book.id %>"></div>
+        <div id="results-<%= book.id %>">
+          <% if (book.groups.length > 0) { %>
+            <%- include('_results', { groups: book.groups }) %>
+          <% } %>
+        </div>
       </div>
     <% }) %>
 
   </main>
 
   <script>
+    // Scan every book in the browser so results render inline, with limited concurrency
+    async function scanAll(allBtn) {
+      const buttons = Array.from(document.querySelectorAll('.btn-scan'));
+      allBtn.disabled = true;
+      const queue = buttons.slice();
+      const worker = async () => {
+        while (queue.length) {
+          const btn = queue.shift();
+          await scanBook(btn.dataset.bookId, btn);
+        }
+      };
+      try {
+        await Promise.all([worker(), worker()]);
+      } finally {
+        allBtn.disabled = false;
+      }
+    }
+
+    // Render stored ISO timestamps in the viewer's locale
+    function showScannedAt(id, iso) {
+      const el = document.getElementById('scanned-' + id);
+      if (!el || !iso) return;
+      el.textContent = 'Scanned ' + new Date(iso).toLocaleString();
+      el.hidden = false;
+    }
+    document.querySelectorAll('.book-scanned').forEach(el => {
+      showScannedAt(el.id.replace('scanned-', ''), el.dataset.scannedAt);
+    });
+
     async function scanBook(id, btn) {
       const card      = document.getElementById('book-' + id);
       const resultsEl = document.getElementById('results-' + id);
@@ -62,18 +137,31 @@
       btn.textContent = 'Scanning…';
       resultsEl.innerHTML = '<div class="book-results"><span class="scanning">Scanning libraries…</span></div>';
       try {
-        const res  = await fetch('/books/' + id + '/scan', { method: 'POST' });
-        const html = await res.text();
-        resultsEl.innerHTML = html;
-        // light up the accent bar if any result is available
-        if (resultsEl.querySelector('.badge-available')) {
-          card.classList.add('has-available');
-        } else {
-          card.classList.remove('has-available');
+        const res = await fetch('/books/' + id + '/scan', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
         }
+        if (!res.ok) {
+          // 4xx bodies are short server-authored messages worth showing; 5xx is the generic error page
+          const msg = res.status < 500 ? (await res.text()).replace(/<[^>]+>/g, '').trim() : '';
+          throw new Error(msg || 'HTTP ' + res.status);
+        }
+        resultsEl.innerHTML = await res.text();
+        showScannedAt(id, res.headers.get('X-Scanned-At'));
+        // light up the accent bar if any result is available
+        card.classList.toggle('has-available', !!resultsEl.querySelector('.badge-available'));
       } catch (e) {
-        resultsEl.innerHTML =
-          '<div class="book-results"><span class="badge-error">Request failed: ' + e.message + '</span></div>';
+        const errEl = document.createElement('span');
+        errEl.className   = 'badge-error';
+        errEl.textContent = 'Request failed: ' + e.message;
+        const wrap = document.createElement('div');
+        wrap.className = 'book-results';
+        wrap.appendChild(errEl);
+        resultsEl.replaceChildren(wrap);
       } finally {
         btn.disabled    = false;
         btn.textContent = 'Scan';

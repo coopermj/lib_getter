@@ -329,5 +329,66 @@
     .add-row input { flex: 1; }
     .empty-state { font-size: 13px; color: var(--muted); padding: 8px 0; }
     .error-msg { font-size: 13px; color: var(--red); margin-bottom: 16px; }
+    .format-select { flex: 0 0 auto; width: auto; }
+    .label-opt { text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--faint); }
+
+    /* ── Status tabs ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .tab {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab-active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab-count { font-size: 11px; color: var(--faint); margin-left: 6px; }
+
+    /* ── Small text actions ── */
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--faint);
+      font-size: 12px;
+      padding: 5px 6px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: color .15s;
+    }
+    .btn-link:hover { color: var(--text); }
+
+    /* ── Result extras ── */
+    .format-tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--faint);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .result-holds { font-size: 11px; color: var(--faint); margin-top: 1px; }
+    .borrow-link-hold { color: var(--muted); }
+    .result-more { margin-top: 2px; }
+    .result-more > summary {
+      font-size: 11px;
+      color: var(--faint);
+      cursor: pointer;
+      padding: 6px 0;
+      list-style: none;
+    }
+    .result-more > summary::-webkit-details-marker { display: none; }
+    .result-more > summary::before { content: '+ '; }
+    .result-more[open] > summary::before { content: '− '; }
+    .result-more > summary:hover { color: var(--muted); }
+    .result-more .result-row { padding-left: 12px; border-top: 1px solid var(--border); }
     hr.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
   </style>

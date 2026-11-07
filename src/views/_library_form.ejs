@@ -1,0 +1,63 @@
+<%#
+  Shared add/edit form fields for a library.
+  lib: { name, adapter_type, config: {...} } or null for a blank form
+%>
+<% const c = (lib && lib.config) || {}; const type = (lib && lib.adapter_type) || 'overdrive'; %>
+
+<div class="field">
+  <label>Name</label>
+  <input type="text" name="name" placeholder="Greene County Public Library" value="<%= (lib && lib.name) || '' %>" required>
+</div>
+
+<div class="field">
+  <label>Adapter</label>
+  <select name="adapter_type" onchange="showFields(this.value)">
+    <option value="overdrive" <%= type === 'overdrive' ? 'selected' : '' %>>OverDrive / Libby</option>
+    <option value="scraper"   <%= type === 'scraper'   ? 'selected' : '' %>>Custom scraper</option>
+  </select>
+</div>
+
+<!-- OverDrive fields -->
+<div id="fields-overdrive" <%= type === 'overdrive' ? '' : 'style="display:none;"' %>>
+  <div class="field">
+    <label>Library key</label>
+    <input type="text" name="libraryKey" placeholder="ohdbks" value="<%= c.libraryKey || '' %>">
+    <p class="hint">
+      The subdomain from your library's OverDrive page —
+      e.g. <code>ohdbks</code> from <code>ohdbks.overdrive.com</code> (Ohio Digital Library)
+    </p>
+  </div>
+</div>
+
+<!-- Scraper fields -->
+<div id="fields-scraper" <%= type === 'scraper' ? '' : 'style="display:none;"' %>>
+  <div class="field">
+    <label>Search URL</label>
+    <input type="text" name="searchUrl" placeholder="https://example.com/search?q={query}" value="<%= c.searchUrl || '' %>">
+    <p class="hint">Use <code>{query}</code> as the placeholder for the search term.</p>
+  </div>
+  <div class="field">
+    <label>Title selector</label>
+    <input type="text" name="titleSelector" placeholder=".book-title" value="<%= c.titleSelector || '' %>">
+  </div>
+  <div class="field">
+    <label>Row selector <span class="label-opt">(optional)</span></label>
+    <input type="text" name="rowSelector" placeholder=".result-item" value="<%= c.rowSelector || '' %>">
+    <p class="hint">Element wrapping one search result. Defaults to the title's nearest classed ancestor.</p>
+  </div>
+  <div class="field">
+    <label>Availability selector <span class="label-opt">(optional)</span></label>
+    <input type="text" name="availabilitySelector" placeholder=".availability-status" value="<%= c.availabilitySelector || '' %>">
+  </div>
+  <div class="field">
+    <label>Checkout link selector <span class="label-opt">(optional)</span></label>
+    <input type="text" name="checkoutLinkSelector" placeholder="a.checkout-btn" value="<%= c.checkoutLinkSelector || '' %>">
+  </div>
+</div>
+
+<script>
+  function showFields(type) {
+    document.getElementById('fields-overdrive').style.display = type === 'overdrive' ? '' : 'none';
+    document.getElementById('fields-scraper').style.display   = type === 'scraper'   ? '' : 'none';
+  }
+</script>

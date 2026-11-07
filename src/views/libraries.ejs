@@ -15,54 +15,9 @@
     <!-- Add form -->
     <div class="card" style="margin-bottom: 28px;">
       <p class="card-title">Add library</p>
+      <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
       <form action="/libraries" method="POST">
-
-        <div class="field">
-          <label>Name</label>
-          <input type="text" name="name" placeholder="Greene County Public Library" required>
-        </div>
-
-        <div class="field">
-          <label>Adapter</label>
-          <select name="adapter_type" onchange="showFields(this.value)">
-            <option value="overdrive">OverDrive / Libby</option>
-            <option value="scraper">Custom scraper</option>
-          </select>
-        </div>
-
-        <!-- OverDrive fields -->
-        <div id="fields-overdrive">
-          <div class="field">
-            <label>Library key</label>
-            <input type="text" name="libraryKey" placeholder="greenecounty">
-            <p class="hint">
-              The subdomain from your library's OverDrive page —
-              e.g. <code>greenecounty</code> from <code>greenecounty.overdrive.com</code>
-            </p>
-          </div>
-        </div>
-
-        <!-- Scraper fields -->
-        <div id="fields-scraper" style="display:none;">
-          <div class="field">
-            <label>Search URL</label>
-            <input type="text" name="searchUrl" placeholder="https://example.com/search?q={query}">
-            <p class="hint">Use <code>{query}</code> as the placeholder for the search term.</p>
-          </div>
-          <div class="field">
-            <label>Title selector</label>
-            <input type="text" name="titleSelector" placeholder=".book-title">
-          </div>
-          <div class="field">
-            <label>Availability selector <span style="text-transform:none;letter-spacing:0;font-size:11px;color:var(--faint)">(optional)</span></label>
-            <input type="text" name="availabilitySelector" placeholder=".availability-status">
-          </div>
-          <div class="field">
-            <label>Checkout link selector <span style="text-transform:none;letter-spacing:0;font-size:11px;color:var(--faint)">(optional)</span></label>
-            <input type="text" name="checkoutLinkSelector" placeholder="a.checkout-btn">
-          </div>
-        </div>
-
+        <%- include('_library_form', { lib: null }) %>
         <button type="submit" class="btn btn-primary">Add library</button>
       </form>
     </div>
@@ -79,13 +34,15 @@
           <p class="lib-type"><%= lib.adapter_type === 'overdrive' ? 'OverDrive / Libby' : 'Custom scraper' %></p>
         </div>
         <div class="lib-actions">
+          <a href="/libraries/<%= lib.id %>/edit" class="btn-link">Edit</a>
           <form action="/libraries/<%= lib.id %>/toggle" method="POST" style="margin:0;">
             <button type="submit"
               class="badge-enabled <%= lib.enabled ? 'badge-enabled-on' : 'badge-enabled-off' %>">
               <%= lib.enabled ? 'Enabled' : 'Disabled' %>
             </button>
           </form>
-          <form action="/libraries/<%= lib.id %>/delete" method="POST" style="margin:0;">
+          <form action="/libraries/<%= lib.id %>/delete" method="POST" style="margin:0;"
+                onsubmit="return confirm('Delete this library? Its stored scan results go with it.')">
             <button type="submit" class="btn-danger">×</button>
           </form>
         </div>
@@ -93,12 +50,5 @@
     <% }) %>
 
   </main>
-
-  <script>
-    function showFields(type) {
-      document.getElementById('fields-overdrive').style.display = type === 'overdrive' ? '' : 'none';
-      document.getElementById('fields-scraper').style.display   = type === 'scraper'   ? '' : 'none';
-    }
-  </script>
 </body>
 </html>
