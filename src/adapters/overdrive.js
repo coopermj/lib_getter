@@ -31,9 +31,10 @@ async function search(query, config, options = {}) {
   }
 
   const formatIds = FORMAT_IDS[options.format] || FORMAT_IDS.ebook;
+  const perPage   = formatIds.length * 5; // one page shared across formats — leave room for each
   const url =
     `${API_BASE}/libraries/${encodeURIComponent(libraryKey)}/media` +
-    `?query=${encodeURIComponent(query)}&format=${formatIds.join(',')}&perPage=5&page=1&x-client-id=dewey`;
+    `?query=${encodeURIComponent(query)}&format=${formatIds.join(',')}&perPage=${perPage}&page=1&x-client-id=dewey`;
 
   try {
     const res = await fetch(url, { headers: HEADERS, timeout: 10000 });

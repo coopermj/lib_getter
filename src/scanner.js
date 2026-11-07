@@ -1,6 +1,7 @@
 const db = require('./db');
 const { getAdapter, errorResult } = require('./adapters/index');
 const { notifyAvailable } = require('./notify');
+const { normalizeIsbn } = require('./amazon');
 
 /**
  * Run all enabled library adapters against a book in parallel, persist the results,
@@ -12,7 +13,16 @@ const { notifyAvailable } = require('./notify');
  *   newlyAvailable: Array of library names that just became available
  * }
  */
-async function scanBook(book) {
+const inFlight = new Map(); // book id → running scan, so concurrent scans of one book share a result
+
+function scanBook(book) {
+  if (inFlight.has(book.id)) return inFlight.get(book.id);
+  const run = doScanBook(book).finally(() => inFlight.delete(book.id));
+  inFlight.set(book.id, run);
+  return run;
+}
+
+async function doScanBook(book) {
   const libraries = db.getEnabledLibraries();
   const previous  = db.getScanResults(book.id);
 
@@ -67,7 +77,7 @@ async function scanLibrary(book, lib) {
  */
 function preferIsbnMatch(results, isbn) {
   if (!isbn) return results;
-  const i = results.findIndex(r => Array.isArray(r.isbns) && r.isbns.includes(isbn));
+  const i = results.findIndex(r => Array.isArray(r.isbns) && r.isbns.map(normalizeIsbn).includes(isbn));
   if (i <= 0) return results;
   return [results[i], ...results.slice(0, i), ...results.slice(i + 1)];
 }
@@ -75,6 +85,7 @@ function preferIsbnMatch(results, isbn) {
 /** Scan every active book, a couple at a time. Used by the background scheduler. */
 async function scanAllActiveBooks({ concurrency = 2 } = {}) {
   const queue = db.getBooks('active');
+  const scanned = queue.length;
   let newlyAvailable = 0;
   const worker = async () => {
     while (queue.length) {
@@ -88,7 +99,7 @@ async function scanAllActiveBooks({ concurrency = 2 } = {}) {
     }
   };
   await Promise.all(Array.from({ length: concurrency }, worker));
-  return { scanned: db.getBooks('active').length, newlyAvailable };
+  return { scanned, newlyAvailable };
 }
 
 module.exports = { scanBook, scanAllActiveBooks };

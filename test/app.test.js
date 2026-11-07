@@ -13,8 +13,9 @@ const auth = () => ({ cookie, ...ip(9) });
 before(async () => {
   od = await startFakeOverDrive();
   ol = await startServer((req, res) => {
+    const key = new URL(req.url, 'http://x').searchParams.get('bibkeys');
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 'ISBN:0735211299': { title: 'Atomic Habits', authors: [{ name: 'James Clear' }] } }));
+    res.end(JSON.stringify({ [key]: { title: 'Atomic Habits', authors: [{ name: 'James Clear' }] } }));
   });
   process.env.OVERDRIVE_API_BASE   = od.url + '/v2';
   process.env.OPENLIBRARY_API_BASE = ol.url;
@@ -50,7 +51,8 @@ test('adding a /gp/product link resolves the ISBN to title + author', async () =
   const book = db.getBook(1);
   assert.equal(book.label, 'Atomic Habits');
   assert.equal(book.query, 'Atomic Habits James Clear');
-  assert.equal(book.isbn, '0735211299');
+  assert.equal(book.isbn, '9780735211292', 'stored as ISBN-13');
+  assert.equal(new URL(ol.requests[0].url, 'http://x').searchParams.get('bibkeys'), 'ISBN:9780735211292');
   assert.equal(book.format, 'both');
 });
 
@@ -96,6 +98,15 @@ test('status moves between tabs; edit validates ISBN', async () => {
   assert.equal((await post(base, '/books/1/edit', { label: 'AH', query: '', isbn: '978-0735211292', format: 'audiobook' }, auth())).status, 302);
   const b = db.getBook(1);
   assert.deepEqual([b.label, b.query, b.isbn, b.format], ['AH', 'AH', '9780735211292', 'audiobook']);
+});
+
+test('the back field only redirects within the app', async () => {
+  const evil = await post(base, '/books/1/status', { status: 'active', back: 'https://evil.example/' }, auth());
+  assert.equal(evil.headers.get('location'), '/');
+  const proto = await post(base, '/books/1/status', { status: 'active', back: '//evil.example/' }, auth());
+  assert.equal(proto.headers.get('location'), '/');
+  const ok = await post(base, '/books/1/status', { status: 'borrowed', back: '/?status=active' }, auth());
+  assert.equal(ok.headers.get('location'), '/?status=active');
 });
 
 test('deleting a book removes its stored results', async () => {

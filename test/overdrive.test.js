@@ -15,6 +15,7 @@ test('maps search items (format, availability, holds, ISBNs) without extra avail
   assert.equal(server.requests.length, 1, 'one request per search');
   const u = new URL(server.requests[0].url, 'http://x');
   assert.equal(u.searchParams.get('format'), 'ebook-overdrive,audiobook-overdrive');
+  assert.equal(u.searchParams.get('perPage'), '10', 'room for both formats');
   assert.equal(u.searchParams.get('query'), 'atomic habits');
 
   assert.equal(results.length, 3);
@@ -35,6 +36,7 @@ test('default format is ebook only', async () => {
   await overdrive.search('x', { libraryKey: 'ohdbks' });
   const u = new URL(server.requests.at(-1).url, 'http://x');
   assert.equal(u.searchParams.get('format'), 'ebook-overdrive');
+  assert.equal(u.searchParams.get('perPage'), '5');
 });
 
 test('unknown library key → helpful error row; empty search → []', async () => {

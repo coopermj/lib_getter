@@ -42,7 +42,7 @@
             </button>
           </form>
           <form action="/libraries/<%= lib.id %>/delete" method="POST" style="margin:0;"
-                onsubmit="return confirm('Delete <%= lib.name.replace(/'/g, '\\\'') %>? Its stored scan results go with it.')">
+                onsubmit="return confirm('Delete this library? Its stored scan results go with it.')">
             <button type="submit" class="btn-danger">×</button>
           </form>
         </div>

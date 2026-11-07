@@ -78,17 +78,24 @@ function addLibrary({ name, adapter_type, config = {} }) {
     .run(name, adapter_type, JSON.stringify(config));
 }
 
-function updateLibrary(id, { name, adapter_type, config = {} }) {
+const clearLibraryResults = db.prepare('DELETE FROM scan_results WHERE library_id = ?');
+const clearBookResults    = db.prepare('DELETE FROM scan_results WHERE book_id = ?');
+
+// Changing what a library points at invalidates everything it previously returned
+const updateLibrary = db.transaction((id, { name, adapter_type, config = {} }) => {
+  clearLibraryResults.run(id);
   return db
     .prepare('UPDATE libraries SET name = ?, adapter_type = ?, config = ? WHERE id = ?')
     .run(name, adapter_type, JSON.stringify(config), id);
-}
+});
 
-function toggleLibrary(id, enabled) {
+// Results from a disabled library would be stale by the time it's re-enabled
+const toggleLibrary = db.transaction((id, enabled) => {
+  if (!enabled) clearLibraryResults.run(id);
   return db
     .prepare('UPDATE libraries SET enabled = ? WHERE id = ?')
     .run(enabled ? 1 : 0, id);
-}
+});
 
 function deleteLibrary(id) {
   return db.prepare('DELETE FROM libraries WHERE id = ?').run(id);
@@ -114,11 +121,18 @@ function addBook({ query, label, isbn = null, format = 'ebook' }) {
     .run(query, label, isbn, format, new Date().toISOString());
 }
 
-function updateBook(id, { query, label, isbn = null, format = 'ebook' }) {
+// A new search term, ISBN or format means the stored results no longer describe this book
+const updateBook = db.transaction((id, { query, label, isbn = null, format = 'ebook' }) => {
+  const current = getBook(id);
+  const searchChanged = !current || current.query !== query || current.isbn !== isbn || current.format !== format;
+  if (searchChanged) {
+    clearBookResults.run(id);
+    db.prepare('UPDATE books SET last_scanned_at = NULL WHERE id = ?').run(id);
+  }
   return db
     .prepare('UPDATE books SET query = ?, label = ?, isbn = ?, format = ? WHERE id = ?')
     .run(query, label, isbn, format, id);
-}
+});
 
 function setBookStatus(id, status) {
   if (!BOOK_STATUSES.includes(status)) throw new Error(`Invalid book status: ${status}`);
@@ -144,9 +158,15 @@ const insertResult = db.prepare(`
 `);
 const clearResults = db.prepare('DELETE FROM scan_results WHERE book_id = ? AND library_id = ?');
 
+const NO_MATCH = -1; // position of the marker row stored when a library was searched and had no match
+
 /** Replace the stored results for one book × library with a fresh set. */
 const saveScanResults = db.transaction((bookId, libraryId, results, scannedAt) => {
   clearResults.run(bookId, libraryId);
+  if (results.length === 0) {
+    insertResult.run(bookId, libraryId, NO_MATCH, null, null, null, 0, null, null, null, null, null, scannedAt);
+    return;
+  }
   results.forEach((r, i) => {
     insertResult.run(
       bookId, libraryId, i, r.format ?? null,
@@ -156,11 +176,12 @@ const saveScanResults = db.transaction((bookId, libraryId, results, scannedAt) =
   });
 });
 
+// Only enabled libraries are scanned, so only their results are current enough to show
 function getScanResults(bookId) {
   return db.prepare(`
     SELECT r.*, l.name AS library_name
     FROM scan_results r JOIN libraries l ON l.id = r.library_id
-    WHERE r.book_id = ?
+    WHERE r.book_id = ? AND l.enabled = 1
     ORDER BY l.name, r.position
   `).all(bookId).map(rowToResult);
 }
@@ -170,6 +191,7 @@ function getAllScanResults() {
   const rows = db.prepare(`
     SELECT r.*, l.name AS library_name
     FROM scan_results r JOIN libraries l ON l.id = r.library_id
+    WHERE l.enabled = 1
     ORDER BY r.book_id, l.name, r.position
   `).all();
   const byBook = {};
@@ -182,6 +204,7 @@ function rowToResult(row) {
     libraryId:   row.library_id,
     libraryName: row.library_name,
     position:    row.position,
+    noMatch:     row.position === NO_MATCH,
     format:      row.format,
     title:       row.title,
     author:      row.author,

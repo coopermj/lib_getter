@@ -27,15 +27,15 @@ async function notifyAvailable({ book, libraryName, result }) {
 }
 
 async function sendNtfy({ title, body, url }) {
-  const base  = (process.env.NTFY_URL || 'https://ntfy.sh').replace(/\/$/, '');
-  const topic = process.env.NTFY_TOPIC;
-  const headers = { 'Title': title, 'Tags': 'books' };
-  if (url) headers['Click'] = url;
+  const base = (process.env.NTFY_URL || 'https://ntfy.sh').replace(/\/$/, '');
+  // Publish as JSON to the server root: HTTP headers can't carry non-Latin-1 text
+  // (an em dash in a title would make the request throw), but a JSON body can.
+  const payload = { topic: process.env.NTFY_TOPIC, title, message: body, tags: ['books'] };
+  if (url) payload.click = url;
+  const headers = { 'Content-Type': 'application/json' };
   if (process.env.NTFY_TOKEN) headers['Authorization'] = `Bearer ${process.env.NTFY_TOKEN}`;
 
-  const res = await fetch(`${base}/${encodeURIComponent(topic)}`, {
-    method: 'POST', headers, body, timeout: 10000,
-  });
+  const res = await fetch(base, { method: 'POST', headers, body: JSON.stringify(payload), timeout: 10000 });
   if (!res.ok) throw new Error(`ntfy returned HTTP ${res.status}`);
 }
 

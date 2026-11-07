@@ -1,27 +1,36 @@
 /**
  * Turn whatever the user pasted into a search label and, when possible, an ISBN.
  *
- * Amazon:    https://www.amazon.com/Atomic-Habits-James-Clear/dp/0735211299  → { label: "Atomic Habits James Clear", isbn: "0735211299" }
- *            https://www.amazon.com/gp/product/0735211299                   → { label: null, isbn: "0735211299" }
+ * Amazon:    https://www.amazon.com/Atomic-Habits-James-Clear/dp/0735211299  → { label: "Atomic Habits James Clear", isbn: "9780735211292" }
+ *            https://www.amazon.com/gp/product/0735211299                   → { label: null, isbn: "9780735211292" }
  * Goodreads: https://www.goodreads.com/book/show/40121378-atomic-habits       → { label: "atomic habits", isbn: null }
- * Bare ISBN: 9780735211292                                                   → { label: "9780735211292", isbn: "9780735211292" }
- * Anything else is returned as the label unchanged.
+ * Bare ISBN: 0735211299                                                      → { label: "ISBN 9780735211292", isbn: "9780735211292" }
+ * ISBNs are always returned as ISBN-13. Anything else is returned as the label unchanged.
  */
 
 const ISBN10 = /^\d{9}[\dX]$/i;
 const ISBN13 = /^97[89]\d{10}$/;
 
+/** Validate an ISBN-10 or ISBN-13 and return it as ISBN-13 (what library catalogs report). */
 function normalizeIsbn(str) {
   if (!str) return null;
   const s = String(str).replace(/[-\s]/g, '').toUpperCase();
-  return ISBN10.test(s) || ISBN13.test(s) ? s : null;
+  if (ISBN13.test(s)) return s;
+  if (ISBN10.test(s)) return isbn10to13(s);
+  return null;
+}
+
+function isbn10to13(isbn10) {
+  const core = '978' + isbn10.slice(0, 9);
+  const sum  = [...core].reduce((acc, d, i) => acc + Number(d) * (i % 2 ? 3 : 1), 0);
+  return core + ((10 - (sum % 10)) % 10);
 }
 
 function parseInput(input) {
   input = input.trim();
 
   const bare = normalizeIsbn(input);
-  if (bare) return { label: bare, isbn: bare };
+  if (bare) return { label: `ISBN ${bare}`, isbn: bare };
 
   try {
     const url = new URL(input);

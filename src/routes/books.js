@@ -86,14 +86,19 @@ router.post('/:id/status', (req, res) => {
   const status = req.body.status;
   if (!db.BOOK_STATUSES.includes(status)) return res.status(400).send('Invalid status');
   db.setBookStatus(req.params.id, status);
-  res.redirect(req.body.back || '/');
+  res.redirect(localPath(req.body.back));
 });
 
 // Delete a book
 router.post('/:id/delete', (req, res) => {
   db.deleteBook(req.params.id);
-  res.redirect(req.body.back || '/');
+  res.redirect(localPath(req.body.back));
 });
+
+// Only redirect within the app — a `back` value like https://evil.example or //evil.example is ignored
+function localPath(str) {
+  return typeof str === 'string' && /^\/(?![\/\\])/.test(str) ? str : '/';
+}
 
 function isUrl(str) {
   try { return ['http:', 'https:'].includes(new URL(str).protocol); } catch (_) { return false; }

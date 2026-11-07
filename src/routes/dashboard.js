@@ -5,7 +5,7 @@ function groupStoredResults(rows = []) {
   const groups = new Map();
   for (const r of rows) {
     if (!groups.has(r.libraryId)) groups.set(r.libraryId, { libraryName: r.libraryName, results: [] });
-    groups.get(r.libraryId).results.push(r);
+    if (!r.noMatch) groups.get(r.libraryId).results.push(r); // marker row → empty group → "Not found"
   }
   return Array.from(groups.values());
 }

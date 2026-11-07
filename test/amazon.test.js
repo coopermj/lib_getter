@@ -5,12 +5,12 @@ const { parseInput, parseLabel, normalizeIsbn } = require('../src/amazon');
 test('Amazon product URL with slug → title + ISBN', () => {
   assert.deepEqual(
     parseInput('https://www.amazon.com/Atomic-Habits-James-Clear/dp/0735211299/ref=sr_1_1?crid=X'),
-    { label: 'Atomic Habits James Clear', isbn: '0735211299' },
+    { label: 'Atomic Habits James Clear', isbn: '9780735211292' },
   );
 });
 
 test('Amazon /gp/product URL → ISBN only', () => {
-  assert.deepEqual(parseInput('https://www.amazon.com/gp/product/0735211299'), { label: null, isbn: '0735211299' });
+  assert.deepEqual(parseInput('https://www.amazon.com/gp/product/0735211299'), { label: null, isbn: '9780735211292' });
 });
 
 test('Amazon Kindle ASIN (not an ISBN) → slug only', () => {
@@ -26,8 +26,9 @@ test('Goodreads dash and dot/underscore formats', () => {
 });
 
 test('bare ISBN-10/13 with hyphens', () => {
-  assert.deepEqual(parseInput('978-0-7352-1129-2'), { label: '9780735211292', isbn: '9780735211292' });
-  assert.deepEqual(parseInput('073521129X'), { label: '073521129X', isbn: '073521129X' });
+  assert.deepEqual(parseInput('978-0-7352-1129-2'), { label: 'ISBN 9780735211292', isbn: '9780735211292' });
+  assert.deepEqual(parseInput('0735211299'), { label: 'ISBN 9780735211292', isbn: '9780735211292' }, 'ISBN-10 is converted to ISBN-13');
+  assert.equal(normalizeIsbn('080442957X'), '9780804429573', 'X check digit');
 });
 
 test('plain text passes through; unknown URL is returned as-is', () => {

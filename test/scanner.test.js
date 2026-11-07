@@ -41,10 +41,12 @@ test('persists results, touches the book, and notifies on unavailable → availa
   assert.deepEqual(r.newlyAvailable, ['Ohio']);
   assert.equal(ntfy.requests.length, 1);
   const n = ntfy.requests[0];
-  assert.equal(n.url, '/lib-test');
-  assert.match(n.headers.title, /Available: Atomic Habits/);
-  assert.match(n.headers.click, /libbyapp\.com/);
-  assert.match(n.body, /audiobook/);
+  assert.equal(n.url, '/', 'published as JSON to the server root');
+  const payload = JSON.parse(n.body);
+  assert.equal(payload.topic, 'lib-test');
+  assert.match(payload.title, /Available: Atomic Habits/);
+  assert.match(payload.click, /libbyapp\.com/);
+  assert.match(payload.message, /audiobook/);
 
   // Third scan: still available → no repeat notification
   r = await scanner.scanBook(book);
@@ -72,15 +74,73 @@ test('a library error keeps the previous good results and does not touch the boo
   assert.equal(db.getScanResults(1).length, before.length, 'nothing stored for the broken library');
 });
 
+test('notifies titles with non-Latin-1 characters', async () => {
+  available = false;
+  db.addBook({ query: 'atomic habits', label: 'Café — “A Memoir”', format: 'ebook' });
+  const id = db.getBooks('active').find(b => b.label.startsWith('Caf')).id;
+  await scanner.scanBook(db.getBook(id));
+  available = true;
+  const r = await scanner.scanBook(db.getBook(id));
+  await settle();
+  assert.deepEqual(r.newlyAvailable, ['Ohio']);
+  const payload = JSON.parse(ntfy.requests.at(-1).body);
+  assert.equal(payload.title, 'Available: Café — “A Memoir”');
+  db.deleteBook(id);
+});
+
+test('concurrent scans of one book share a single run and notify once', async () => {
+  available = false;
+  db.addBook({ query: 'atomic habits', label: 'Race', format: 'ebook' });
+  const id = db.getBooks('active').find(b => b.label === 'Race').id;
+  await scanner.scanBook(db.getBook(id));
+  available = true;
+  const before = ntfy.requests.length;
+  const [a, b] = await Promise.all([scanner.scanBook(db.getBook(id)), scanner.scanBook(db.getBook(id))]);
+  await settle();
+  assert.equal(a, b, 'same result object');
+  assert.equal(ntfy.requests.length, before + 1);
+  db.deleteBook(id);
+});
+
 test('a result carrying the book ISBN is moved to the front', async () => {
-  db.addBook({ query: 'atomic habits', label: 'AH', isbn: '9780735211308', format: 'both' });
-  const r = await scanner.scanBook(db.getBook(3));
+  const { lastInsertRowid } = db.addBook({ query: 'atomic habits', label: 'AH', isbn: '9780735211308', format: 'both' });
+  const r = await scanner.scanBook(db.getBook(lastInsertRowid));
   const ohio = r.libraries.find(l => l.library.name === 'Ohio');
   assert.equal(ohio.results[0].format, 'ebook');
   assert.deepEqual(ohio.results[0].isbns, ['9780735211308']);
 });
 
-test('scanAllActiveBooks scans only active books', async () => {
+test('a library with no matches is remembered as "no match" and disabled libraries are hidden', async () => {
+  db.addBook({ query: 'nothing', label: 'Nothing', format: 'ebook' });
+  const id = db.getBooks('active').find(b => b.label === 'Nothing').id;
+  await scanner.scanBook(db.getBook(id));
+  const rows = db.getScanResults(id).filter(r => r.libraryName === 'Ohio');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].noMatch, true);
+
+  db.toggleLibrary(1, false);
+  assert.equal(db.getScanResults(id).some(r => r.libraryName === 'Ohio'), false);
+  db.toggleLibrary(1, true);
+  assert.equal(db.getScanResults(id).length, 0, 'disabling cleared the stored results');
+  db.deleteBook(id);
+});
+
+test('editing a book search term or a library config clears stored results', async () => {
+  await scanner.scanBook(db.getBook(1));
+  assert.ok(db.getScanResults(1).length > 0);
+  db.updateBook(1, { query: 'atomic habits', label: 'Renamed only', format: 'both' });
+  assert.ok(db.getScanResults(1).length > 0, 'label-only edit keeps results');
+  db.updateBook(1, { query: 'atomic habits clear', label: 'Renamed only', format: 'both' });
+  assert.equal(db.getScanResults(1).length, 0);
+  assert.equal(db.getBook(1).last_scanned_at, null);
+
+  await scanner.scanBook(db.getBook(1));
+  db.updateLibrary(1, { name: 'Ohio', adapter_type: 'overdrive', config: { libraryKey: 'other' } });
+  assert.equal(db.getScanResults(1).length, 0);
+});
+
+test('scanAllActiveBooks scans only active books and counts what it scanned', async () => {
   const { scanned } = await scanner.scanAllActiveBooks();
+  assert.equal(scanned, db.getBooks('active').length);
   assert.equal(scanned, 2); // books 1 and 3; book 2 is archived
 });
