@@ -27,12 +27,11 @@ router.post('/', async (req, res) => {
   }
 
   if (!label) {
-    return res.status(400).render('dashboard', dashboardLocals({
-      status: 'active',
-      error: isbn
-        ? `Couldn't find ISBN ${isbn}. Type the title instead.`
-        : 'Couldn\'t read a title from that link. Paste an Amazon product link, a Goodreads link, an ISBN, or type the title.',
-    }));
+    let error;
+    if (isbn && isUrl(raw)) error = 'Couldn\'t read a title from that link and the ISBN lookup failed. Type the title instead.';
+    else if (isbn)          error = `Couldn't find ISBN ${isbn}. Type the title instead.`;
+    else                    error = 'Couldn\'t read a title from that link. Paste an Amazon product link, a Goodreads link, an ISBN, or type the title.';
+    return res.status(400).render('dashboard', dashboardLocals({ status: 'active', error }));
   }
 
   const format = db.BOOK_FORMATS.includes(req.body.format) ? req.body.format : 'ebook';

@@ -60,10 +60,4 @@ function parseInput(input) {
   return { label: input, isbn: null };
 }
 
-/** Back-compat helper: just the label (or the raw input when nothing could be parsed). */
-function parseLabel(input) {
-  const { label, isbn } = parseInput(input);
-  return label ?? (isbn ? `ISBN ${isbn}` : input.trim());
-}
-
-module.exports = { parseInput, parseLabel, normalizeIsbn };
+module.exports = { parseInput, normalizeIsbn };

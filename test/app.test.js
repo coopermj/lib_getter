@@ -66,6 +66,12 @@ test('a bare ISBN that Open Library does not know is rejected, not saved', async
   assert.equal(db.getBooks().length, before);
 });
 
+test('an Amazon link whose ISBN lookup fails gets a link-specific message', async () => {
+  const r = await post(base, '/books', { query: 'https://www.amazon.com/gp/product/0000000000' }, auth());
+  assert.equal(r.status, 400);
+  assert.match(await r.text(), /read a title from that link and the ISBN lookup failed/);
+});
+
 test('adding an unparseable link is rejected with a message', async () => {
   const r = await post(base, '/books', { query: 'https://example.com/whatever' }, auth());
   assert.equal(r.status, 400);

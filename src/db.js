@@ -85,14 +85,25 @@ const clearBookResults    = db.prepare('DELETE FROM scan_results WHERE book_id =
 // a rename alone does not
 const updateLibrary = db.transaction((id, { name, adapter_type, config = {} }) => {
   const current = getLibrary(id);
-  const configJson = JSON.stringify(config);
-  if (!current || current.adapter_type !== adapter_type || current.config !== configJson) {
+  if (!current || current.adapter_type !== adapter_type || !sameConfig(current.config, config)) {
     clearLibraryResults.run(id);
   }
   return db
     .prepare('UPDATE libraries SET name = ?, adapter_type = ?, config = ? WHERE id = ?')
-    .run(name, adapter_type, configJson, id);
+    .run(name, adapter_type, JSON.stringify(config), id);
 });
+
+// Field-wise comparison: missing keys and empty strings are the same thing, so a
+// library saved before a form field existed isn't treated as changed on rename
+function sameConfig(storedJson, next) {
+  let stored = {};
+  try { stored = JSON.parse(storedJson || '{}'); } catch (_) { return false; }
+  const keys = new Set([...Object.keys(stored), ...Object.keys(next)]);
+  for (const k of keys) {
+    if ((stored[k] ?? '') !== (next[k] ?? '')) return false;
+  }
+  return true;
+}
 
 // Results from a disabled library would be stale by the time it's re-enabled
 const toggleLibrary = db.transaction((id, enabled) => {

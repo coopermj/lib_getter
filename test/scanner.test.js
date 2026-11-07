@@ -137,6 +137,8 @@ test('editing a book search term or a library config clears stored results', asy
   await scanner.scanBook(db.getBook(1));
   db.updateLibrary(1, { name: 'Ohio Renamed', adapter_type: 'overdrive', config: { libraryKey: 'ohdbks' } });
   assert.ok(db.getScanResults(1).length > 0, 'rename keeps results');
+  db.updateLibrary(1, { name: 'Ohio', adapter_type: 'overdrive', config: { libraryKey: 'ohdbks', rowSelector: '' } });
+  assert.ok(db.getScanResults(1).length > 0, 'a new empty form field is not a change');
   db.updateLibrary(1, { name: 'Ohio', adapter_type: 'overdrive', config: { libraryKey: 'other' } });
   assert.equal(db.getScanResults(1).length, 0);
 });
