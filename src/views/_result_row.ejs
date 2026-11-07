@@ -1,0 +1,39 @@
+<% if (item.error) { %>
+  <div class="result-row">
+    <span class="result-library"><%= libraryName %></span>
+    <span class="badge-error">Error: <%= item.error %></span>
+  </div>
+<% } else { %>
+  <%
+    const bits = [];
+    if (item.title)  bits.push(item.title);
+    if (item.author) bits.push(item.author);
+    const holdBits = [];
+    if (item.copies != null) holdBits.push(`${item.copies} ${item.copies === 1 ? 'copy' : 'copies'}`);
+    if (item.holds  != null) holdBits.push(`${item.holds} ${item.holds === 1 ? 'hold' : 'holds'}`);
+    if (!item.available && item.waitDays != null) {
+      holdBits.push(item.waitDays < 14 ? `~${item.waitDays}d wait` : `~${Math.round(item.waitDays / 7)}wk wait`);
+    }
+  %>
+  <div class="result-row">
+    <div>
+      <span class="result-library"><%= libraryName %></span>
+      <% if (item.format === 'audiobook') { %><span class="format-tag">Audio</span><% } %>
+      <% if (bits.length) { %><div class="result-subtitle"><%= bits.join(' · ') %></div><% } %>
+      <% if (holdBits.length) { %><div class="result-holds"><%= holdBits.join(' · ') %></div><% } %>
+    </div>
+    <div class="result-right">
+      <% if (item.available) { %>
+        <span class="badge-available">Available</span>
+        <% if (item.checkoutUrl) { %>
+          <a href="<%= item.checkoutUrl %>" target="_blank" rel="noopener" class="borrow-link">Borrow →</a>
+        <% } %>
+      <% } else { %>
+        <span class="badge-unavailable">Unavailable</span>
+        <% if (item.checkoutUrl) { %>
+          <a href="<%= item.checkoutUrl %>" target="_blank" rel="noopener" class="borrow-link borrow-link-hold">Place hold →</a>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+<% } %>

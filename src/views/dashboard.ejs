@@ -10,7 +10,9 @@
 
     <div class="page-header">
       <h1 class="page-title">Wishlist</h1>
-      <button type="button" class="btn btn-ghost" onclick="scanAll(this)">Scan all</button>
+      <% if (status === 'active' && books.length > 0) { %>
+        <button type="button" class="btn btn-ghost" onclick="scanAll(this)">Scan all</button>
+      <% } %>
     </div>
 
     <!-- Add book -->
@@ -19,35 +21,80 @@
     <% } %>
     <form action="/books" method="POST" class="add-row">
       <input type="text" name="query"
-        placeholder="Title, keywords, Amazon or Goodreads URL"
+        placeholder="Title, ISBN, Amazon or Goodreads URL"
         required>
+      <select name="format" class="format-select" title="Format">
+        <option value="ebook">Ebook</option>
+        <option value="audiobook">Audiobook</option>
+        <option value="both">Either</option>
+      </select>
       <button type="submit" class="btn btn-primary">Add</button>
     </form>
 
+    <!-- Status tabs -->
+    <nav class="tabs">
+      <% [['active', 'Wishlist'], ['borrowed', 'Borrowed'], ['archived', 'Archived']].forEach(([s, name]) => { %>
+        <a href="/?status=<%= s %>" class="tab <%= status === s ? 'tab-active' : '' %>">
+          <%= name %><span class="tab-count"><%= counts[s] %></span>
+        </a>
+      <% }) %>
+    </nav>
+
     <!-- Book list -->
     <% if (books.length === 0) { %>
-      <p class="empty-state">No books yet. Add one above.</p>
+      <p class="empty-state">
+        <%= status === 'active' ? 'No books yet. Add one above.' : 'Nothing here.' %>
+      </p>
     <% } %>
 
+    <% const back = '/?status=' + status; %>
     <% books.forEach(book => { %>
-      <div class="book-card" id="book-<%= book.id %>">
+      <div class="book-card <%= book.hasAvailable ? 'has-available' : '' %>" id="book-<%= book.id %>">
         <div class="book-card-header">
           <div>
-            <p class="book-title"><%= book.label %></p>
+            <p class="book-title">
+              <%= book.label %>
+              <% if (book.format !== 'ebook') { %>
+                <span class="format-tag"><%= book.format === 'audiobook' ? 'Audio' : 'Either' %></span>
+              <% } %>
+            </p>
             <p class="book-scanned" id="scanned-<%= book.id %>"
                data-scanned-at="<%= book.last_scanned_at || '' %>"
                <%= book.last_scanned_at ? '' : 'hidden' %>></p>
           </div>
           <div class="book-actions">
-            <button class="btn btn-scan" data-book-id="<%= book.id %>" onclick="scanBook(this.dataset.bookId, this)">
-              Scan
-            </button>
-            <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;">
+            <% if (status === 'active') { %>
+              <button class="btn btn-scan" data-book-id="<%= book.id %>" onclick="scanBook(this.dataset.bookId, this)">
+                Scan
+              </button>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="borrowed">
+                <button type="submit" class="btn-link" title="Mark as borrowed">Borrowed</button>
+              </form>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="archived">
+                <button type="submit" class="btn-link" title="Archive">Archive</button>
+              </form>
+            <% } else { %>
+              <form action="/books/<%= book.id %>/status" method="POST" style="margin:0;">
+                <input type="hidden" name="status" value="active">
+                <input type="hidden" name="back" value="<%= back %>">
+                <button type="submit" class="btn-link">Back to wishlist</button>
+              </form>
+            <% } %>
+            <a href="/books/<%= book.id %>/edit" class="btn-link" title="Edit">Edit</a>
+            <form action="/books/<%= book.id %>/delete" method="POST" style="margin:0;"
+                  onsubmit="return confirm('Delete this book?')">
+              <input type="hidden" name="back" value="<%= back %>">
               <button type="submit" class="btn-danger">×</button>
             </form>
           </div>
         </div>
-        <div id="results-<%= book.id %>"></div>
+        <div id="results-<%= book.id %>">
+          <% if (book.groups.length > 0) { %>
+            <%- include('_results', { groups: book.groups }) %>
+          <% } %>
+        </div>
       </div>
     <% }) %>
 
@@ -106,11 +153,7 @@
         resultsEl.innerHTML = await res.text();
         showScannedAt(id, res.headers.get('X-Scanned-At'));
         // light up the accent bar if any result is available
-        if (resultsEl.querySelector('.badge-available')) {
-          card.classList.add('has-available');
-        } else {
-          card.classList.remove('has-available');
-        }
+        card.classList.toggle('has-available', !!resultsEl.querySelector('.badge-available'));
       } catch (e) {
         const errEl = document.createElement('span');
         errEl.className   = 'badge-error';

@@ -1,0 +1,30 @@
+<%#
+  Results block for one book.
+  groups: [{ libraryName, results: [{ format, title, author, available, checkoutUrl, holds, copies, waitDays, error }] }]
+  Shows the best (first) match per library; extra matches fold under a toggle.
+%>
+<div class="book-results fade-up">
+<% if (groups.length === 0) { %>
+  <p class="empty-state">No libraries configured.
+    <a href="/libraries" style="color:var(--gold);text-decoration:underline;">Add one</a>.</p>
+<% } %>
+<% groups.forEach(group => { %>
+  <% if (group.results.length === 0) { %>
+    <div class="result-row">
+      <span class="result-library"><%= group.libraryName %></span>
+      <span class="badge-unavailable">Not found</span>
+    </div>
+  <% } else { %>
+    <% const [best, ...rest] = group.results; %>
+    <%- include('_result_row', { libraryName: group.libraryName, item: best }) %>
+    <% if (rest.length > 0) { %>
+      <details class="result-more">
+        <summary><%= rest.length %> more match<%= rest.length === 1 ? '' : 'es' %> at <%= group.libraryName %></summary>
+        <% rest.forEach(item => { %>
+          <%- include('_result_row', { libraryName: group.libraryName, item }) %>
+        <% }) %>
+      </details>
+    <% } %>
+  <% } %>
+<% }) %>
+</div>

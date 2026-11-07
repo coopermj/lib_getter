@@ -1,0 +1,148 @@
+{
+ "items": [
+  {
+   "id": "3994890",
+   "title": "Atomic Habits",
+   "creators": [
+    {
+     "name": "James Clear"
+    },
+    {
+     "name": "James Clear"
+    }
+   ],
+   "type": {
+    "id": "audiobook",
+    "name": "Audiobook"
+   },
+   "isAvailable": true,
+   "availableCopies": 3,
+   "ownedCopies": 157,
+   "holdsCount": 32,
+   "estimatedWaitDays": 9,
+   "formats": [
+    {
+     "id": "audiobook-overdrive",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9781524779269"
+      }
+     ]
+    },
+    {
+     "id": "audiobook-mp3",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9781524779269"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "3994736",
+   "title": "Atomic Habits",
+   "creators": [
+    {
+     "name": "James Clear"
+    }
+   ],
+   "type": {
+    "id": "ebook",
+    "name": "eBook"
+   },
+   "isAvailable": false,
+   "availableCopies": 0,
+   "ownedCopies": 35,
+   "holdsCount": 49,
+   "estimatedWaitDays": 350,
+   "formats": [
+    {
+     "id": "ebook-kindle",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9780735211308"
+      }
+     ]
+    },
+    {
+     "id": "ebook-overdrive",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9780735211308"
+      }
+     ]
+    },
+    {
+     "id": "ebook-epub-adobe",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9780735211308"
+      }
+     ]
+    },
+    {
+     "id": "ebook-kobo",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9780735211308"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "11966206",
+   "title": "The Atomic Habits Workbook",
+   "creators": [
+    {
+     "name": "James Clear"
+    }
+   ],
+   "type": {
+    "id": "ebook",
+    "name": "eBook"
+   },
+   "isAvailable": false,
+   "availableCopies": 0,
+   "ownedCopies": 9,
+   "holdsCount": 30,
+   "estimatedWaitDays": 217,
+   "formats": [
+    {
+     "id": "ebook-kindle",
+     "identifiers": []
+    },
+    {
+     "id": "ebook-overdrive",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9798217180516"
+      }
+     ]
+    },
+    {
+     "id": "ebook-epub-adobe",
+     "identifiers": [
+      {
+       "type": "ISBN",
+       "value": "9798217180516"
+      }
+     ]
+    },
+    {
+     "id": "ebook-kobo",
+     "identifiers": []
+    }
+   ]
+  }
+ ],
+ "totalItems": 3
+}

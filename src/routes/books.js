@@ -1,99 +1,102 @@
 const express   = require('express');
 const router    = express.Router();
-const { addBook, deleteBook, getBook, getBooks } = require('../db');
-const { parseLabel } = require('../amazon');
-const { scanBook }   = require('../scanner');
+const db        = require('../db');
+const { parseInput, normalizeIsbn } = require('../amazon');
+const { scanBook } = require('../scanner');
+const { lookupIsbn } = require('../isbn');
+const { dashboardLocals } = require('./dashboard');
 
 // Add a book to the wishlist
-router.post('/', (req, res) => {
-  const query = (req.body.query || '').trim();
-  if (!query) return res.redirect('/');
+router.post('/', async (req, res) => {
+  const raw = (req.body.query || '').trim();
+  if (!raw) return res.redirect('/');
+
   // Search with the parsed title, not the raw URL — library catalogs can't match a URL
-  const label = parseLabel(query);
-  if (isUrl(label)) {
-    return res.status(400).render('dashboard', {
-      books: getBooks(),
-      error: 'Couldn\'t read a title from that link. Paste an Amazon product link (with the title in the URL), a Goodreads link, or type the title.',
-    });
+  let { label, isbn } = parseInput(raw);
+  if (label && isUrl(label)) label = null; // a link we couldn't parse is not a title
+  let query = label;
+
+  // An ISBN gives us a canonical title and author — better than an Amazon slug,
+  // and the only option for links that carry no title at all (/gp/product/…)
+  if (isbn) {
+    const found = await lookupIsbn(isbn);
+    if (found) {
+      label = found.title;
+      query = found.authors.length ? `${found.title} ${found.authors[0]}` : found.title;
+    }
   }
-  addBook({ query: label, label });
+
+  if (!label) {
+    return res.status(400).render('dashboard', dashboardLocals({
+      status: 'active',
+      error: isbn
+        ? `Couldn't find ISBN ${isbn}. Type the title instead.`
+        : 'Couldn\'t read a title from that link. Paste an Amazon product link, a Goodreads link, an ISBN, or type the title.',
+    }));
+  }
+
+  const format = db.BOOK_FORMATS.includes(req.body.format) ? req.body.format : 'ebook';
+  db.addBook({ query, label, isbn, format });
+  res.redirect('/');
+});
+
+// Edit form
+router.get('/:id/edit', (req, res) => {
+  const book = db.getBook(req.params.id);
+  if (!book) return res.status(404).send('Book not found');
+  res.render('book_edit', { book, formats: db.BOOK_FORMATS, error: null });
+});
+
+// Save edits — label, search term, ISBN and format are all independently editable
+router.post('/:id/edit', (req, res) => {
+  const book = db.getBook(req.params.id);
+  if (!book) return res.status(404).send('Book not found');
+
+  const label  = (req.body.label || '').trim();
+  const query  = (req.body.query || '').trim() || label;
+  const isbnIn = (req.body.isbn  || '').trim();
+  const isbn   = isbnIn ? normalizeIsbn(isbnIn) : null;
+  const format = db.BOOK_FORMATS.includes(req.body.format) ? req.body.format : 'ebook';
+
+  if (!label) {
+    return res.status(400).render('book_edit', { book: { ...book, ...req.body }, formats: db.BOOK_FORMATS, error: 'Title is required.' });
+  }
+  if (isbnIn && !isbn) {
+    return res.status(400).render('book_edit', { book: { ...book, ...req.body }, formats: db.BOOK_FORMATS, error: 'That doesn\'t look like a valid ISBN-10 or ISBN-13.' });
+  }
+
+  db.updateBook(book.id, { label, query, isbn, format });
   res.redirect('/');
 });
 
 // Scan a single book — returns an HTML fragment (used by fetch in dashboard.ejs)
 router.post('/:id/scan', async (req, res) => {
-  const book = getBook(req.params.id);
+  const book = db.getBook(req.params.id);
   if (!book) return res.status(404).send('<p class="text-red-500 text-sm">Book not found</p>');
 
-  const { scannedAt, libraries: scanResults } = await scanBook(book.id, book.query);
+  const { scannedAt, libraries } = await scanBook(book);
   if (scannedAt) res.set('X-Scanned-At', scannedAt);
 
-  if (scanResults.length === 0) {
-    return res.send(
-      '<div class="book-results fade-up"><p class="empty-state">No libraries configured. ' +
-      '<a href="/libraries" style="color:var(--gold);text-decoration:underline;">Add one</a>.</p></div>'
-    );
-  }
+  const groups = libraries.map(({ library, results }) => ({ libraryName: library.name, results }));
+  res.render('_results', { groups });
+});
 
-  let html = '<div class="book-results fade-up">';
-
-  for (const { library, results } of scanResults) {
-    if (results.length === 0) {
-      html += `
-        <div class="result-row">
-          <span class="result-library">${escHtml(library.name)}</span>
-          <span class="badge-unavailable">Not found</span>
-        </div>`;
-      continue;
-    }
-
-    for (const item of results) {
-      if (item.error) {
-        html += `
-          <div class="result-row">
-            <span class="result-library">${escHtml(library.name)}</span>
-            <span class="badge-error">Error: ${escHtml(item.error)}</span>
-          </div>`;
-      } else {
-        const badge = item.available
-          ? '<span class="badge-available">Available</span>'
-          : '<span class="badge-unavailable">Unavailable</span>';
-        const link = item.checkoutUrl
-          ? ` <a href="${escHtml(item.checkoutUrl)}" target="_blank" rel="noopener" class="borrow-link">Borrow →</a>`
-          : '';
-        const subtitle = item.title
-          ? `<div class="result-subtitle">${escHtml(item.title)}</div>` : '';
-        html += `
-          <div class="result-row">
-            <div><span class="result-library">${escHtml(library.name)}</span>${subtitle}</div>
-            <div class="result-right">${badge}${link}</div>
-          </div>`;
-      }
-    }
-  }
-
-  html += '</div>';
-  res.send(html);
+// Move between wishlist / borrowed / archived
+router.post('/:id/status', (req, res) => {
+  const status = req.body.status;
+  if (!db.BOOK_STATUSES.includes(status)) return res.status(400).send('Invalid status');
+  db.setBookStatus(req.params.id, status);
+  res.redirect(req.body.back || '/');
 });
 
 // Delete a book
 router.post('/:id/delete', (req, res) => {
-  deleteBook(req.params.id);
-  res.redirect('/');
+  db.deleteBook(req.params.id);
+  res.redirect(req.body.back || '/');
 });
 
 function isUrl(str) {
   try { return ['http:', 'https:'].includes(new URL(str).protocol); } catch (_) { return false; }
-}
-
-// Minimal HTML escaping for inline HTML construction
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 module.exports = router;
