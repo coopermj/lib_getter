@@ -26,8 +26,9 @@ test('Goodreads dash and dot/underscore formats', () => {
 });
 
 test('bare ISBN-10/13 with hyphens', () => {
-  assert.deepEqual(parseInput('978-0-7352-1129-2'), { label: 'ISBN 9780735211292', isbn: '9780735211292' });
-  assert.deepEqual(parseInput('0735211299'), { label: 'ISBN 9780735211292', isbn: '9780735211292' }, 'ISBN-10 is converted to ISBN-13');
+  assert.deepEqual(parseInput('978-0-7352-1129-2'), { label: null, isbn: '9780735211292' }, 'no title until the ISBN is looked up');
+  assert.deepEqual(parseInput('0735211299'), { label: null, isbn: '9780735211292' }, 'ISBN-10 is converted to ISBN-13');
+  assert.equal(parseLabel('0735211299'), 'ISBN 9780735211292');
   assert.equal(normalizeIsbn('080442957X'), '9780804429573', 'X check digit');
 });
 

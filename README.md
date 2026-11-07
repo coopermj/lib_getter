@@ -5,14 +5,14 @@ A personal web app for tracking ebook and audiobook availability across public l
 ## Features
 
 - Single-password login (one user; rate limited)
-- Add books by title, ISBN, Amazon link or Goodreads link — ISBNs are resolved to a title and author via Open Library
+- Add books by title, ISBN, Amazon link or Goodreads link — ISBNs are stored as ISBN-13 and resolved to a title and author via Open Library
 - Ebook, audiobook, or either — per book
 - OverDrive / Libby adapter for any OverDrive library, plus a generic CSS-selector scraper for other catalogs
 - Scan one book or all books; results are stored and shown on the dashboard, with the best match per library first and the rest folded away
 - Hold-queue details: copies owned, holds in line, estimated wait, and a **Place hold** link when a title is unavailable
 - Scheduled background scans with push notifications (ntfy or any webhook) when a book becomes available
 - Mark books as borrowed or archived to keep the wishlist focused
-- Edit books (title, search term, ISBN, format) and libraries after creating them
+- Edit books (title, search term, ISBN, format) and libraries after creating them. Changing a book's search term, ISBN or format, or a library's adapter or key, clears the stored results for it (a rename doesn't) — the next scan fills them back in
 
 ## Setup
 

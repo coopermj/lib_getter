@@ -4,7 +4,7 @@
  * Amazon:    https://www.amazon.com/Atomic-Habits-James-Clear/dp/0735211299  → { label: "Atomic Habits James Clear", isbn: "9780735211292" }
  *            https://www.amazon.com/gp/product/0735211299                   → { label: null, isbn: "9780735211292" }
  * Goodreads: https://www.goodreads.com/book/show/40121378-atomic-habits       → { label: "atomic habits", isbn: null }
- * Bare ISBN: 0735211299                                                      → { label: "ISBN 9780735211292", isbn: "9780735211292" }
+ * Bare ISBN: 0735211299                                                      → { label: null, isbn: "9780735211292" }
  * ISBNs are always returned as ISBN-13. Anything else is returned as the label unchanged.
  */
 
@@ -30,7 +30,7 @@ function parseInput(input) {
   input = input.trim();
 
   const bare = normalizeIsbn(input);
-  if (bare) return { label: `ISBN ${bare}`, isbn: bare };
+  if (bare) return { label: null, isbn: bare };
 
   try {
     const url = new URL(input);
@@ -62,7 +62,8 @@ function parseInput(input) {
 
 /** Back-compat helper: just the label (or the raw input when nothing could be parsed). */
 function parseLabel(input) {
-  return parseInput(input).label ?? input.trim();
+  const { label, isbn } = parseInput(input);
+  return label ?? (isbn ? `ISBN ${isbn}` : input.trim());
 }
 
 module.exports = { parseInput, parseLabel, normalizeIsbn };

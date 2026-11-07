@@ -15,7 +15,9 @@ before(async () => {
   ol = await startServer((req, res) => {
     const key = new URL(req.url, 'http://x').searchParams.get('bibkeys');
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ [key]: { title: 'Atomic Habits', authors: [{ name: 'James Clear' }] } }));
+    // Open Library returns {} for ISBNs it doesn't know
+    const body = key === 'ISBN:9780000000002' ? {} : { [key]: { title: 'Atomic Habits', authors: [{ name: 'James Clear' }] } };
+    res.end(JSON.stringify(body));
   });
   process.env.OVERDRIVE_API_BASE   = od.url + '/v2';
   process.env.OPENLIBRARY_API_BASE = ol.url;
@@ -56,6 +58,14 @@ test('adding a /gp/product link resolves the ISBN to title + author', async () =
   assert.equal(book.format, 'both');
 });
 
+test('a bare ISBN that Open Library does not know is rejected, not saved', async () => {
+  const before = db.getBooks().length;
+  const r = await post(base, '/books', { query: '978-0-00-000000-2' }, auth());
+  assert.equal(r.status, 400);
+  assert.match(await r.text(), /Couldn&#39;t find ISBN 9780000000002/);
+  assert.equal(db.getBooks().length, before);
+});
+
 test('adding an unparseable link is rejected with a message', async () => {
   const r = await post(base, '/books', { query: 'https://example.com/whatever' }, auth());
   assert.equal(r.status, 400);
@@ -85,6 +95,16 @@ test('scan returns a fragment with best match + folded extras, and the dashboard
   assert.match(dash, /has-available/);
   assert.match(dash, /result-row/);
   assert.match(dash, /tab-active/);
+});
+
+test('a library with no match still shows as "Not found" after reload', async () => {
+  const { lastInsertRowid: id } = db.addBook({ query: 'nothing', label: 'Nothing', format: 'ebook' });
+  await fetch(base + `/books/${id}/scan`, { method: 'POST', headers: auth() });
+  const dash = await (await fetch(base + '/', { headers: auth() })).text();
+  const start = dash.indexOf(`id="book-${id}"`);
+  assert.ok(start > -1, 'book card is rendered');
+  assert.match(dash.slice(start, start + 3000), /Ohio DL[\s\S]{0,200}Not found/);
+  db.deleteBook(id);
 });
 
 test('status moves between tabs; edit validates ISBN', async () => {

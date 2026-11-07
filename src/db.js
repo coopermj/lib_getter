@@ -81,12 +81,17 @@ function addLibrary({ name, adapter_type, config = {} }) {
 const clearLibraryResults = db.prepare('DELETE FROM scan_results WHERE library_id = ?');
 const clearBookResults    = db.prepare('DELETE FROM scan_results WHERE book_id = ?');
 
-// Changing what a library points at invalidates everything it previously returned
+// Changing what a library points at invalidates everything it previously returned;
+// a rename alone does not
 const updateLibrary = db.transaction((id, { name, adapter_type, config = {} }) => {
-  clearLibraryResults.run(id);
+  const current = getLibrary(id);
+  const configJson = JSON.stringify(config);
+  if (!current || current.adapter_type !== adapter_type || current.config !== configJson) {
+    clearLibraryResults.run(id);
+  }
   return db
     .prepare('UPDATE libraries SET name = ?, adapter_type = ?, config = ? WHERE id = ?')
-    .run(name, adapter_type, JSON.stringify(config), id);
+    .run(name, adapter_type, configJson, id);
 });
 
 // Results from a disabled library would be stale by the time it's re-enabled
